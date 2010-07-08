@@ -1,0 +1,72 @@
+#!/usr/bin/python
+
+import os,sys,re,subprocess
+
+hunk_re = re.compile(r'^@@ -\d+,\d+ \+(\d+),(\d+) @@')
+ws_re = re.compile(r'^(.*?)[ \t]+$')
+file_re = re.compile(r'^\+\+\+ b/(.+)')
+
+def strip_whitespace_regions(filename, hunks):
+  if len(hunks) == 0:
+    return
+  filename_t = filename + '.tmp'
+  tmpf = open(filename_t, 'w')
+  f = open(filename)
+  i = 0
+  hunk = hunks[0]
+  for line in f:
+    if (hunk is None) or (i < hunk[0]):
+      tmpf.write(line)
+    elif i < (hunk[0] + hunk[1]):
+      nline = ws_re.sub(r'\1', line) 
+      tmpf.write(nline) 
+    else:
+      hunks = hunks[1:]
+      if len(hunks) == 0:
+        hunk = None
+      else:
+        hunk = hunks[0] 
+      tmpf.write(line)
+    i = i+1
+  tmpf.close()
+  f.close()
+  os.rename(filename_t, filename)
+  print "wrote " + filename
+
+def main():
+  toplevel = subprocess.Popen(['git', 'rev-parse', '--show-toplevel'], stdout=subprocess.PIPE).communicate()[0]
+  os.chdir(toplevel[:-1])
+  diff = subprocess.Popen(['git', 'diff'], stdout=subprocess.PIPE).communicate()[0]
+  if diff != '':
+    print "You have unstaged changes; Commit them or 'git stash'"
+    sys.exit(1)
+  commit_proc = subprocess.Popen(['git', 'show', '-p', 'HEAD'], stdout=subprocess.PIPE,
+                                 stderr=sys.stderr)
+  diff_lines = commit_proc.stdout.readlines()
+  commit_proc.wait()
+  subprocess.check_call(['git', 'reset', 'HEAD^'], stdout=sys.stdout, stderr=sys.stderr)
+  curfile = None
+  hunks = []
+  files = []
+  for line in diff_lines:
+    if curfile is not None:
+      match = hunk_re.match(line) 
+      if match:
+        hunks.append((int(match.group(1)),int(match.group(2))))
+        continue
+    match = file_re.match(line)
+    if match:
+      filename = match.group(1)
+      strip_whitespace_regions(curfile, hunks)
+      curfile = filename
+      files.append(filename)
+      hunks = []
+  if curfile:
+    strip_whitespace_regions(curfile, hunks)
+  add_args = ['git', 'add']
+  add_args.extend(files)
+  subprocess.check_call(add_args, stdout=sys.stdout, stderr=sys.stderr)
+  subprocess.check_call(['git', 'commit', '-c', 'ORIG_HEAD'], stdout=sys.stdout, stderr=sys.stderr)
+
+if __name__ == '__main__':
+  main()

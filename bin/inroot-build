@@ -1,0 +1,5 @@
+#!/bin/bash
+set -e
+root=$1
+shift
+exec inroot $root build "$@"

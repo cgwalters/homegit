@@ -1,0 +1,28 @@
+# .bashrc
+
+# Source global definitions
+if [ -f /etc/bashrc ]; then
+	. /etc/bashrc
+fi
+
+# User specific aliases and functions
+
+if [ -f /etc/bash_completion ]; then
+  . /etc/bash_completion
+fi
+
+shopt -s histappend
+
+EDITOR="emacsclient"
+export EDITOR
+
+_format_inroot_dir ()
+{
+  if test -n "$INROOT_DIR"; then
+    echo " [root=$INROOT_DIR]"
+  fi
+}
+
+PS1='\W$(_format_inroot_dir)$(__git_ps1 " [git %s]") \$ '
+export PS1
+

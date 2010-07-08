@@ -1,0 +1,28 @@
+#!/bin/bash
+set -e
+set -x
+root=$INROOT_DIR
+if test -z "$root"; then
+  echo "INROOT_DIR not set; run under inroot"
+  exit 1
+fi
+shift || true
+if ! test -x configure; then
+  if test -d /lib64; then
+    libdir=$root/lib64
+  else
+    libdir=$root/lib
+  fi
+  configargs="--prefix=$root --libdir=$libdir $@"
+  if test -f autogen.sh; then
+    inroot $root ./autogen.sh $configargs
+  else
+    autoreconf -f -i
+    inroot $root configure $configargs
+  fi
+fi
+if ! test -f Makefile; then
+  inroot $root configure $configargs
+fi
+nproc=$(($(grep -c ^processor /proc/cpuinfo) * 2))
+make -j $nproc $MAKEARGS

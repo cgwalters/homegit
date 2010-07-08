@@ -23,6 +23,13 @@ _format_inroot_dir ()
   fi
 }
 
-PS1='\W$(_format_inroot_dir)$(__git_ps1 " [git %s]") \$ '
+_format_uid ()
+{
+  if test $(id -u) = '0'; then
+    echo " <uid=0>"
+  fi
+}
+
+PS1='\W$(_format_uid)$(_format_inroot_dir)$(__git_ps1 " [git %s]") \$ '
 export PS1
 

@@ -7,22 +7,30 @@ if test -z "$root"; then
   exit 1
 fi
 shift || true
+if test -d /lib64; then
+  libdir=$root/lib64
+else
+  libdir=$root/lib
+fi
+configargs="--prefix=$root --libdir=$libdir $@"
 if ! test -x configure; then
-  if test -d /lib64; then
-    libdir=$root/lib64
-  else
-    libdir=$root/lib
-  fi
-  configargs="--prefix=$root --libdir=$libdir $@"
   if test -f autogen.sh; then
     inroot $root ./autogen.sh $configargs
   else
     autoreconf -f -i
-    inroot $root configure $configargs
+    inroot $root ./configure $configargs
   fi
 fi
-if ! test -f Makefile; then
-  inroot $root configure $configargs
+# We need to rerun configure if the prefix changed
+prefix_matches=yes
+if test -f config.log; then
+  previous_prefix=$(grep '^prefix=' config.log | cut -f 2 -d '=')
+  if test previous_prefix != $root; then
+    prefix_matches=no
+  fi
+fi
+if ! test -f Makefile || test x$prefix_matches = xno; then
+  inroot $root ./configure $configargs
 fi
 nproc=$(($(grep -c ^processor /proc/cpuinfo) * 2))
 make -j $nproc $MAKEARGS

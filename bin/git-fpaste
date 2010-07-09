@@ -1,0 +1,45 @@
+#!/usr/bin/python
+
+# Paste a diff using fpaste
+# Copyright 2010 Colin Walters <walters@verbum.org>
+# Licensed under the new-BSD license (http://www.opensource.org/licenses/bsd-license.php)
+
+import os
+import sys
+import subprocess
+import getopt
+
+def main():
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], 'd', ['diff'])
+    except getopt.GetoptError, e:
+        print unicode(e)
+        print "Usage: git fpaste [--diff] [REVISION]"
+        print "  If REVISION is not specified it defaults to HEAD."
+        sys.exit(1)
+        
+    if not os.path.exists('/usr/bin/fpaste'):
+        subprocess.check_call(['pkcon', 'install', 'fpaste'])
+
+    diff = False
+    for o, a in opts:
+        if o in ('--diff', ):
+            diff = True
+
+    if len(args) > 0:
+        revision = args[0]
+    else:
+        revision = 'HEAD^'
+    
+    if diff:
+        proc = subprocess.Popen(['git', 'diff'], stdout=subprocess.PIPE, stderr=sys.stderr)
+        description = "diff from " + os.path.basename(os.getcwd())
+    else:
+        proc = subprocess.Popen(['git', 'format-patch', '--stdout', revision], stdout=subprocess.PIPE, stderr=sys.stderr)
+        description = revision + " in " + os.path.basename(os.getcwd())
+    pasteproc = subprocess.Popen(['fpaste', '-d', description], stdin=proc.stdout, stdout=sys.stdout, stderr=sys.stderr)
+    pasteproc.wait()
+
+if __name__ == '__main__':
+    main()
+

@@ -4,7 +4,7 @@ import os,sys,re,subprocess
 
 hunk_re = re.compile(r'^@@ -\d+,\d+ \+(\d+),(\d+) @@')
 ws_re = re.compile(r'^(.*?)[ \t]+$')
-file_re = re.compile(r'^\+\+\+ b/(.+)')
+file_re = re.compile(r'^\-\-\- b/(.+)')
 
 def strip_whitespace_regions(filename, hunks):
   if len(hunks) == 0:

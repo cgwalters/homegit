@@ -6,7 +6,6 @@ if test -z "$root"; then
   echo "INROOT_DIR not set; run under inroot"
   exit 1
 fi
-shift || true
 if test -d /lib64; then
   libdir=$root/lib64
 else

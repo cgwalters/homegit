@@ -1,5 +1,13 @@
 #!/usr/bin/python
 
+# Strip trailing whitespace ONLY in modified sections in the latest commit.
+# Usage:
+# <edit files>
+# $ git commit
+# $ git un-diff-whitespace
+# Copyright 2010 Colin Walters <walters@verbum.org>
+# Licensed under the new-BSD license (http://www.opensource.org/licenses/bsd-license.php)
+
 import os,sys,re,subprocess
 
 hunk_re = re.compile(r'^@@ -\d+,\d+ \+(\d+),(\d+) @@')

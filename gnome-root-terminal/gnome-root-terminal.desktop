@@ -3,4 +3,5 @@ Type=Application
 Name=Root Terminal
 Exec=gnome-root-terminal
 Icon=system-config-rootpassword
+Categories=System;
 StartupNotify=true

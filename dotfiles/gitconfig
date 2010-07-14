@@ -1,0 +1,17 @@
+[user]
+	email = walters@verbum.org
+	name = Colin Walters
+[bz]
+	browser = firefox3
+[url "ssh://walters@git.gnome.org/git/"]
+	insteadof = gnome:
+[url "ssh://walters@git.freedesktop.org/git/"]
+	insteadof = fd:
+[url "ssh://git.fedorahosted.org/git/"]
+	insteadof = fedorahosted:
+[giggle]
+	main-window-maximized = false
+	main-window-geometry = 988x528+0+26
+	history-view-vpane-position = 161
+	file-view-vpane-position = 288
+	file-view-hpane-position = 312

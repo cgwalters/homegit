@@ -22,9 +22,13 @@
 (global-set-key (kbd "C-c i") 'imenu)
 ;;; End Minimal Unbreak Emacs
 
+;; Less minimal changes
 (global-set-key (kbd "C-z") 'undo)
 (tool-bar-mode nil)
 (server-start)
+
+;; Really custom stuff
+(setq user-mail-address "walters@verbum.org")
 (setq viper-mode t)
 (require 'viper)
 

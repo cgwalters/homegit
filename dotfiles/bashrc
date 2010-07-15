@@ -30,6 +30,11 @@ _format_uid ()
   fi
 }
 
-PS1='\W$(_format_uid)$(_format_inroot_dir)$(__git_ps1 " [git %s]") \$ '
+PS1_PREFIX='\W$(_format_uid)$(_format_inroot_dir)'
+if test -n "$BASH_COMPLETION" && test -f /etc/bash_completion.d/git; then
+  PS1_PREFIX="$PS1_PREFIX"'$(__git_ps1 " [git %s]")'
+fi
+
+PS1="$PS1_PREFIX"' \$ '
 export PS1
 

@@ -1,35 +1,48 @@
-#!/bin/bash
-set -e
-set -x
-root=$INROOT_DIR
-if test -z "$root"; then
-  echo "INROOT_DIR not set; run under inroot"
-  exit 1
-fi
-if test -d /lib64; then
-  libdir=$root/lib64
-else
-  libdir=$root/lib
-fi
-configargs="--prefix=$root --libdir=$libdir $@"
-if ! test -x configure; then
-  if test -f autogen.sh; then
-    inroot $root ./autogen.sh $configargs
-  else
-    autoreconf -f -i
-    inroot $root ./configure $configargs
-  fi
-fi
-# We need to rerun configure if the prefix changed
-prefix_matches=yes
-if test -f config.log; then
-  previous_prefix=$(grep '^prefix=' config.log | cut -f 2 -d '=')
-  if test previous_prefix != $root; then
-    prefix_matches=no
-  fi
-fi
-if ! test -f Makefile || test x$prefix_matches = xno; then
-  inroot $root ./configure $configargs
-fi
-nproc=$(($(grep -c ^processor /proc/cpuinfo) * 2))
-make -j $nproc $MAKEARGS
+#!/usr/bin/python
+
+import os,sys,subprocess
+from multiprocessing import cpu_count
+
+if 'INROOT_DIR' not in os.environ:
+    print "INROOT_DIR not set; run under inroot"
+    sys.exit(1)
+root = os.environ['INROOT_DIR']
+if os.path.isdir('/lib64'):
+    libdir=os.path.join(root, 'lib64')
+else:
+    libdir=os.path.join(root, 'lib')
+configargs=['--prefix=' + root, '--libdir=' + libdir]
+configargs.extend(sys.argv[1:])
+if not os.path.exists('configure'):
+    if os.path.exists('autogen.sh'):
+        args = ['autogen.sh']
+        args.extend(configargs)
+        subprocess.check_call(args, stdout=sys.stdout, stderr=sys.stderr)
+    else:
+        subprocess.check_call(['autoreconf', '-f', '-i'], stdout=sys.stdout, stderr=sys.stderr)
+        args = ['./configure']
+        args.extend(configargs)
+        subprocess.check_call(args, stdout=sys.stdout, stderr=sys.stderr)
+prefix_matches=True
+if os.path.exists('config.log'):
+    previous_prefix = None
+    f = open('config.log')
+    for line in f:
+        if line.startswith('prefix=\''):
+            previous_prefix = line[8:-2]
+            break
+    f.close()
+    if previous_prefix != root:
+        print "Reruning configure due to prefix change (%r -> %r)" % (root, previous_prefix)
+        prefix_matches=False
+
+if not os.path.exists('Makefile') or not prefix_matches:
+    args = ['./configure']
+    args.extend(configargs)
+    subprocess.check_call(args, stdout=sys.stdout, stderr=sys.stderr)
+
+logfile_path = '/tmp/build-%s.log' % (os.path.basename(os.getcwd()),)
+logfile = open(logfile_path, 'w')
+subprocess.Popen(['make', '-j', '%d' % (cpu_count() * 2, )],
+                 stdout=logfile, stderr=logfile)
+os.execlp('tail', 'tail', '--lines=2000', '-f', logfile_path)

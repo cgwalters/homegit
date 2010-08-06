@@ -1,7 +1,10 @@
 #!/usr/bin/python
 
-import os,sys,subprocess
+import os,sys,subprocess,tempfile
 from multiprocessing import cpu_count
+import glib,gio
+
+glib.threads_init()
 
 if 'INROOT_DIR' not in os.environ:
     print "INROOT_DIR not set; run under inroot"
@@ -41,8 +44,60 @@ if not os.path.exists('Makefile') or not prefix_matches:
     args.extend(configargs)
     subprocess.check_call(args, stdout=sys.stdout, stderr=sys.stderr)
 
-logfile_path = '/tmp/build-%s.log' % (os.path.basename(os.getcwd()),)
-logfile = open(logfile_path, 'w')
-subprocess.Popen(['make', '-j', '%d' % (cpu_count() * 2, )],
-                 stdout=logfile, stderr=logfile)
-os.execlp('tail', 'tail', '--lines=2000', '-f', logfile_path)
+class Tail(object):
+    def __init__(self, filename, output):
+        self.filename = filename
+        self.output = output
+        self._gfile = gio.File(path=filename)
+        self._mon = self._gfile.monitor(gio.FILE_MONITOR_NONE)
+        self._fd = os.open(self.filename, os.O_RDONLY)
+        self._position = 0
+        self._mon.connect('changed', self._on_changed)
+        self._do_read()
+
+    def _do_read(self):
+        buf = os.read(self._fd, 8192)
+        while buf != '':
+            self._position += len(buf)
+            self.output.write(buf)
+            buf = os.read(self._fd, 8192)
+
+    def _on_changed(self, mon, gfile, other, event):
+        self._do_read()
+
+    def finish(self):
+        self._do_read()
+
+loop = glib.MainLoop()
+build_condition = None
+
+tempdir = os.environ.get('TMPDIR', '/tmp')
+logfile_path = os.path.join(tempdir, 'build-%s.log' % (os.path.basename(os.getcwd()), ))
+try:
+    os.unlink(logfile_path)
+except OSError, e:
+    pass
+logfile_write_fd = os.open(logfile_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL)
+sys.stdout.write('build: logging to %r\n' % (logfile_path, ))
+sys.stdout.flush()
+def child_setup(*args):
+    os.dup2(logfile_write_fd, 1)
+    os.dup2(logfile_write_fd, 2)
+makeargs = ['make', '-j', '%d' % (cpu_count() * 2, )]
+makeargs.extend(sys.argv[1:])
+(make_pid, stdin_fd, stdout_fd, stderr_fd) = \
+    glib.spawn_async(makeargs,
+                     flags=(glib.SPAWN_DO_NOT_REAP_CHILD | glib.SPAWN_SEARCH_PATH),
+                     child_setup=child_setup)
+os.close(logfile_write_fd)
+tail = Tail(logfile_path, sys.stdout)
+def on_child(pid, condition):
+    global loop
+    global build_condition
+    build_condition = condition
+    loop.quit()
+glib.child_watch_add(make_pid, on_child)
+loop.run()
+tail.finish()
+print "build: make exited with status %r, logfile=%r" % (build_condition, logfile_path)
+sys.exit(0 if build_condition == 0 else 1)

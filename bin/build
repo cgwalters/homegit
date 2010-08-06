@@ -4,8 +4,6 @@ import os,sys,subprocess,tempfile
 from multiprocessing import cpu_count
 import glib,gio
 
-glib.threads_init()
-
 if 'INROOT_DIR' not in os.environ:
     print "INROOT_DIR not set; run under inroot"
     sys.exit(1)

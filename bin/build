@@ -16,7 +16,7 @@ configargs=['--prefix=' + root, '--libdir=' + libdir]
 configargs.extend(sys.argv[1:])
 if not os.path.exists('configure'):
     if os.path.exists('autogen.sh'):
-        args = ['autogen.sh']
+        args = ['./autogen.sh']
         args.extend(configargs)
         subprocess.check_call(args, stdout=sys.stdout, stderr=sys.stderr)
     else:

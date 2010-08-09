@@ -1,2 +1,2 @@
 #!/bin/sh
-exec gnome-terminal --hide-menubar --disable-factory --name=gnome-terminal-root --class=gnome-terminal-root --title="Root Terminal" --profile=Root -e "sudo su -"
+exec gnome-terminal --hide-menubar --disable-factory --name=gnome-terminal-root --class=gnome-terminal-root --title="Root Terminal" --profile=Root -e "su -"

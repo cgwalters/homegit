@@ -22,13 +22,16 @@ _format_wd ()
   base=$(basename $pwd)
   parent=$(basename $(dirname $pwd)) 
   pparent=$(basename $(dirname $parent)) 
-  if test pparent != "/"; then
-    echo "$parent/$base"
+  if test $pparent != "/"; then
+    echo -n "$parent/";
+    tput bold; echo -n $base; tput sgr0
   else 
-    if test parent != "/"; then
-      echo "/$parent/base"
+    if test $parent != "/"; then
+      echo -n "/$parent/"
+      tput bold; echo -n $base; tput sgr0
     else
-      echo "/$base"
+      echo -n "/";
+      tput bold; echo -n $base; tput sgr0
     fi
   fi
 }
@@ -47,7 +50,7 @@ _format_inroot_dir ()
 _format_uid ()
 {
   if test $(id -u) = '0'; then
-    echo " <uid=0>"
+    echo -n " <"; tput rev; echo -n "uid=0"; tput sgr0; echo -n ">"; 
   fi
 }
 

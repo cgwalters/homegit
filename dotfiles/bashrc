@@ -16,6 +16,23 @@ shopt -s histappend
 EDITOR="emacsclient"
 export EDITOR
 
+_format_wd ()
+{
+  pwd=$(pwd)
+  base=$(basename $pwd)
+  parent=$(basename $(dirname $pwd)) 
+  pparent=$(basename $(dirname $parent)) 
+  if test pparent != "/"; then
+    echo "$parent/$base"
+  else 
+    if test parent != "/"; then
+      echo "/$parent/base"
+    else
+      echo "/$base"
+    fi
+  fi
+}
+
 _format_inroot_dir ()
 {
   if test -z "$INROOT_DIR" && test -n "$CERTIFIED_GNOMIE"; then
@@ -34,7 +51,7 @@ _format_uid ()
   fi
 }
 
-PS1_PREFIX='\W$(_format_uid)$(_format_inroot_dir)'
+PS1_PREFIX='$(_format_wd)$(_format_uid)$(_format_inroot_dir)'
 if test -n "$BASH_COMPLETION" && test -f /etc/bash_completion.d/git; then
   PS1_PREFIX="$PS1_PREFIX"'$(__git_ps1 " [git %s]")'
 fi

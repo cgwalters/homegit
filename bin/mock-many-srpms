@@ -1,0 +1,136 @@
+#!/usr/bin/python
+
+# mock-many-srpms:
+# Build binary RPMS for the named source RPMs.
+#
+# Licensed under the new-BSD license (http://www.opensource.org/licenses/bsd-license.php)
+# Copyright (C) 2010 Red Hat, Inc.
+# Written by Colin Walters <walters@verbum.org>
+
+import getopt
+import os
+import sys
+import subprocess
+import tempfile
+import shutil
+
+def check_call_verbose(*args, **kwargs):
+    print "Running: %r %r" % (args[0], kwargs)
+    subprocess.check_call(*args, **kwargs)
+
+def popen_verbose(*args, **kwargs):
+    print "Running: %r" % (args[0], )
+    return subprocess.Popen(*args, **kwargs)
+
+def main():
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], '', ['root=', 'resultdir=', 'logdir=', 'delete-old'])
+    except getopt.GetoptError, e:
+        print unicode(e)
+        print "Usage: mock-many-srpms --root=fedora-13-x86-64 --root=fedora-13-i386 --logdir=/path/to/logdir --resultdir=/path/to/repo rpm1 rpm2 ..."
+        sys.exit(1)
+        
+    delete_old = False
+    resultdir = None
+    logdir = None
+    roots = []
+    for o, a in opts:
+        if o in ('--root', ):
+            roots.append(a)
+        elif o in ('--resultdir', ):
+            resultdir = a
+        elif o in ('--logdir', ):
+            logdir = a
+        elif o in ('--delete-old', ):
+            delete_old = True
+
+    if len(roots) == 0:
+        print "Must specify at least one --root"
+        sys.exit(1)
+    if logdir is None:
+        print "Must specify --logdir=/path/to/logs"
+        sys.exit(1)
+    if resultdir is None:
+        print "Must specify --resultdir=/path/to/repository"
+        sys.exit(1)
+
+    for arg in args:
+        if not os.path.isfile(arg):
+            print "Couldn't find source RPM '%r'" % (arg, )
+            
+    if not os.path.exists(resultdir):
+        print "Creating initial empty repository in %r" % (resultdir, )
+        os.makedirs(resultdir)
+        check_call_verbose(['createrepo', '.'], cwd=resultdir)
+        
+    if not os.path.isdir(logdir):
+        os.mkdir(logdir)
+
+    tmpdir = tempfile.mkdtemp()
+    tmp_mock_dir = os.path.join(tmpdir, 'mock')
+    os.mkdir(tmp_mock_dir)
+        
+    for f in ('site-defaults.cfg', 'logging.ini'):
+        path = os.path.join('/etc', 'mock', f)
+        new_path = os.path.join(tmp_mock_dir, f)
+        shutil.copy2(path, new_path)
+        orig_stat = os.stat(path)
+        os.utime(new_path, (orig_stat.st_atime, orig_stat.st_mtime))
+
+    for root in roots:
+        orig_config_path = os.path.join('/etc', 'mock', root + '.cfg')
+        f_in = open(orig_config_path)
+        new_mockroot_path = os.path.join(tmp_mock_dir, root + '.cfg')
+        f_out = open(new_mockroot_path, 'w')
+        for line in f_in:
+            f_out.write(line)
+        f_in.close()
+        orig_stat = os.stat(orig_config_path)
+        os.utime(new_mockroot_path, (orig_stat.st_atime, orig_stat.st_mtime))
+        f_out.write('config_opts[\'yum.conf\'] += """[buildchain]\nname=buildchain\nbaseurl=file://%s\n"""' % (os.path.abspath(resultdir), ))
+        f_out.close()
+       
+    failed = []
+    for srpm in args:
+        srpm_name = os.path.basename(srpm)
+        mock_resultdir = os.path.join(logdir, srpm_name)
+        if not os.path.isdir(mock_resultdir):
+            os.makedirs(mock_resultdir)
+                
+        current_failed = False
+        for root in roots:
+            try:
+                check_call_verbose(['mock', '--configdir=' + tmp_mock_dir, '-r', root, 
+                                    '--resultdir=' + mock_resultdir, 'rebuild', srpm],
+                                   stdout=sys.stdout, stderr=sys.stderr)
+            except subprocess.CalledProcessError, e:
+                shutil.rmtree(tmp_mock_dir)
+                raise SystemExit("Build of %r failed: %s" % (srpm_name, unicode(e)))
+    
+        print "Successfully built %r" % (srpm_name, )    
+        print "Updating repository in %r" % (resultdir, )
+        linkname = os.path.join(resultdir, srpm_name)
+        if not os.path.exists(linkname):
+            os.link(srpm, linkname)
+        for filename in os.listdir(mock_resultdir):
+            if not filename.endswith('.rpm'):
+                continue
+            src = os.path.join(mock_resultdir, filename)
+            linkname = os.path.join(resultdir, filename)
+            if os.path.exists(linkname):
+                continue
+            os.link(src, linkname)
+        notify_state('createrepo', {})
+        check_call_verbose(['createrepo', '.'], cwd=resultdir)
+        if delete_old:
+            proc = popen_verbose(['repomanage', '-o', '.'], stdout=subprocess.PIPE, stderr=sys.stderr, cwd=resultdir)
+            output = proc.communicate()[0]
+            for line in output.split('\n'):
+                if line.endswith('.rpm') and os.path.exists(line):
+                    os.unlink(line)
+        
+    shutil.rmtree(tmp_mock_dir)
+    sys.exit(0)
+
+if __name__ == '__main__':
+    main()

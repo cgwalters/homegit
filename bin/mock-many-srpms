@@ -22,16 +22,37 @@ def popen_verbose(*args, **kwargs):
     print "Running: %r" % (args[0], )
     return subprocess.Popen(*args, **kwargs)
 
+def list_source_names_in_dir(dirpath):
+    files = os.listdir(dirpath)
+    sources = []
+    for f in files:
+        if not f.endswith('.src.rpm'):
+            continue
+        name = f.rsplit('-', 1)[1]
+        sources.append(name)
+    return sources
+
+def delete_old_rpms_in_dir(dirpath):
+    proc = popen_verbose(['repomanage', '-o', '.'], stdout=subprocess.PIPE,
+                         stderr=sys.stderr,
+                         cwd=dirpath)
+    output = proc.communicate()[0]
+    for line in output.split('\n'):
+        if line.endswith('.rpm') and os.path.exists(line):
+            os.unlink(line)
+
 def main():
     try:
         opts, args = getopt.getopt(sys.argv[1:], '', ['root=', 'resultdir=', 'logdir=', 'delete-old',
-                                                      'skip-failed'])
+                                                      'continue-on-fail', 'skip-have-build', 'save-temps'])
     except getopt.GetoptError, e:
         print unicode(e)
         print "Usage: mock-many-srpms --root=fedora-13-x86-64 --root=fedora-13-i386 --logdir=/path/to/logdir --resultdir=/path/to/repo rpm1 rpm2 ..."
         sys.exit(1)
         
-    skip_failed = False
+    save_temps = False
+    continue_on_fail = False
+    skip_have_build = False
     delete_old = False
     resultdir = None
     logdir = None
@@ -45,8 +66,12 @@ def main():
             logdir = a
         elif o in ('--delete-old', ):
             delete_old = True
-        elif o in ('--skip-failed', ):
-            skip_failed = True
+        elif o in ('--continue-on-fail'):
+            continue_on_fail = True
+        elif o in ('--skip-have-build'):
+            skip_have_build = True
+        elif o in ('--save-temps'):
+            save_temps = True
 
     if len(roots) == 0:
         print "Must specify at least one --root"
@@ -58,6 +83,10 @@ def main():
         print "Must specify --resultdir=/path/to/repository"
         sys.exit(1)
 
+    if len(args) == 0:
+        print "No source RPMS specified."
+        sys.exit(1)
+ 
     for arg in args:
         if not os.path.isfile(arg):
             print "Couldn't find source RPM '%r'" % (arg, )
@@ -65,7 +94,7 @@ def main():
     if not os.path.exists(resultdir):
         print "Creating initial empty repository in %r" % (resultdir, )
         os.makedirs(resultdir)
-        check_call_verbose(['createrepo', '.'], cwd=resultdir)
+    check_call_verbose(['createrepo', '.'], cwd=resultdir)
         
     if not os.path.isdir(logdir):
         os.mkdir(logdir)
@@ -93,10 +122,24 @@ def main():
         os.utime(new_mockroot_path, (orig_stat.st_atime, orig_stat.st_mtime))
         f_out.write('config_opts[\'yum.conf\'] += """[buildchain]\nname=buildchain\nbaseurl=file://%s\n"""' % (os.path.abspath(resultdir), ))
         f_out.close()
+
+    if skip_have_build:
+        previous_successful_builds = list_source_names_in_dir(resultdir)
+    else:
+        previous_successful_builds = []
        
+    succeeded = []
+    skipped = []
     failed = []
     for srpm in args:
         srpm_name = os.path.basename(srpm)
+        src_name = srpm_name.rsplit('-', 1)[1]
+
+        if src_name in previous_successful_builds:
+            print "Skipping %r due to previous successful build" % (srpm_name, )
+            skipped.append(srpm_name)
+            continue
+
         mock_resultdir = os.path.join(logdir, srpm_name)
         if not os.path.isdir(mock_resultdir):
             os.makedirs(mock_resultdir)
@@ -112,12 +155,13 @@ def main():
 
         if current_failed:
             print "FAILED: %r" % (srpm_name, )
-            if skip_failed:
-                failed.append(current_failed)
+            if continue_on_fail:
+                failed.append(srpm_name)
                 continue
             else:
                 break
     
+        succeeded.append(srpm_name)
         print "Successfully built %r" % (srpm_name, )    
         print "Updating repository in %r" % (resultdir, )
         linkname = os.path.join(resultdir, srpm_name)
@@ -133,19 +177,27 @@ def main():
             os.link(src, linkname)
         check_call_verbose(['createrepo', '.'], cwd=resultdir)
         if delete_old:
-            proc = popen_verbose(['repomanage', '-o', '.'], stdout=subprocess.PIPE, stderr=sys.stderr, cwd=resultdir)
-            output = proc.communicate()[0]
-            for line in output.split('\n'):
-                if line.endswith('.rpm') and os.path.exists(line):
-                    os.unlink(line)
+            delete_old_rpms_in_dir(resultdir)
         
-    shutil.rmtree(tmp_mock_dir)
-    if len(failed) == 0:
-        sys.exit(0)
+    if save_temps:
+        print "Temporary files saved in %r" % (tmp_mock_dir, )
     else:
+        shutil.rmtree(tmp_mock_dir)
+    if len(skipped) > 0:
+        print "The following builds were skipped due to a previous successful build:"
+        for v in skipped:
+            print "  %r" % (v, )
+    if len(succeeded) > 0:
+        print "The following builds were successful:"
+        for v in succeeded:
+            print "  %r" % (v, )
+    if len(failed) > 0:
         print "The following builds failed:"
         for v in failed:
             print "  %r" % (v, )
+    if len(failed) == 0:
+        sys.exit(0)
+    else:
         sys.exit(1)
 
 if __name__ == '__main__':

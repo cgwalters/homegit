@@ -24,12 +24,14 @@ def popen_verbose(*args, **kwargs):
 
 def main():
     try:
-        opts, args = getopt.getopt(sys.argv[1:], '', ['root=', 'resultdir=', 'logdir=', 'delete-old'])
+        opts, args = getopt.getopt(sys.argv[1:], '', ['root=', 'resultdir=', 'logdir=', 'delete-old',
+                                                      'skip-failed'])
     except getopt.GetoptError, e:
         print unicode(e)
         print "Usage: mock-many-srpms --root=fedora-13-x86-64 --root=fedora-13-i386 --logdir=/path/to/logdir --resultdir=/path/to/repo rpm1 rpm2 ..."
         sys.exit(1)
         
+    skip_failed = False
     delete_old = False
     resultdir = None
     logdir = None
@@ -43,6 +45,8 @@ def main():
             logdir = a
         elif o in ('--delete-old', ):
             delete_old = True
+        elif o in ('--skip-failed', ):
+            skip_failed = True
 
     if len(roots) == 0:
         print "Must specify at least one --root"
@@ -104,8 +108,15 @@ def main():
                                     '--resultdir=' + mock_resultdir, 'rebuild', srpm],
                                    stdout=sys.stdout, stderr=sys.stderr)
             except subprocess.CalledProcessError, e:
-                shutil.rmtree(tmp_mock_dir)
-                raise SystemExit("Build of %r failed: %s" % (srpm_name, unicode(e)))
+                current_failed = True
+
+        if current_failed:
+            print "FAILED: %r" % (srpm_name, )
+            if skip_failed:
+                failed.append(current_failed)
+                continue
+            else:
+                break
     
         print "Successfully built %r" % (srpm_name, )    
         print "Updating repository in %r" % (resultdir, )
@@ -120,7 +131,6 @@ def main():
             if os.path.exists(linkname):
                 continue
             os.link(src, linkname)
-        notify_state('createrepo', {})
         check_call_verbose(['createrepo', '.'], cwd=resultdir)
         if delete_old:
             proc = popen_verbose(['repomanage', '-o', '.'], stdout=subprocess.PIPE, stderr=sys.stderr, cwd=resultdir)
@@ -130,7 +140,13 @@ def main():
                     os.unlink(line)
         
     shutil.rmtree(tmp_mock_dir)
-    sys.exit(0)
+    if len(failed) == 0:
+        sys.exit(0)
+    else:
+        print "The following builds failed:"
+        for v in failed:
+            print "  %r" % (v, )
+        sys.exit(1)
 
 if __name__ == '__main__':
     main()

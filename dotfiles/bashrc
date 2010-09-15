@@ -50,7 +50,7 @@ _format_inroot_dir ()
 _format_uid ()
 {
   if test $(id -u) = '0'; then
-    echo -n " <"; tput rev; echo -n "uid=0"; tput sgr0; echo -n ">"; 
+    echo -n " <"; echo -n "uid=0"; echo -n ">"; 
   fi
 }
 

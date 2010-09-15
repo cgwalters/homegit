@@ -28,7 +28,7 @@ def list_source_names_in_dir(dirpath):
     for f in files:
         if not f.endswith('.src.rpm'):
             continue
-        name = f.rsplit('-', 1)[1]
+        name = f.rsplit('-', 1)[0]
         sources.append(name)
     return sources
 
@@ -127,13 +127,13 @@ def main():
         previous_successful_builds = list_source_names_in_dir(resultdir)
     else:
         previous_successful_builds = []
-       
+
     succeeded = []
     skipped = []
     failed = []
     for srpm in args:
         srpm_name = os.path.basename(srpm)
-        src_name = srpm_name.rsplit('-', 1)[1]
+        src_name = srpm_name.rsplit('-', 1)[0]
 
         if src_name in previous_successful_builds:
             print "Skipping %r due to previous successful build" % (srpm_name, )

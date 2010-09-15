@@ -24,14 +24,14 @@ _format_wd ()
   pparent=$(basename $(dirname $parent)) 
   if test $pparent != "/"; then
     echo -n "$parent/";
-    tput bold; echo -n $base; tput sgr0
+    echo -n $base;
   else 
     if test $parent != "/"; then
       echo -n "/$parent/"
-      tput bold; echo -n $base; tput sgr0
+      echo -n $base;
     else
       echo -n "/";
-      tput bold; echo -n $base; tput sgr0
+      echo -n $base;
     fi
   fi
 }

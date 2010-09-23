@@ -59,6 +59,6 @@ if test -n "$BASH_COMPLETION" && test -f /etc/bash_completion.d/git; then
   PS1_PREFIX="$PS1_PREFIX"'$(__git_ps1 " [git %s]")'
 fi
 
-PS1="$PS1_PREFIX"' \$ '
+PS1="$PS1_PREFIX"'\n\$ '
 export PS1
 

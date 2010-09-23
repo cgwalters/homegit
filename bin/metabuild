@@ -1,5 +1,31 @@
 #!/usr/bin/python
 
+# metabuild: Generic build system wrapper
+# Copyright 2010 Colin Walters <walters@verbum.org>
+# Licensed under the new-BSD license (http://www.opensource.org/licenses/bsd-license.php)
+
+# metabuild currently just wraps autotools (configure+make).
+# To use it, you must first use the "inroot" tool to enter an alternative
+# buildroot.
+#
+# $ inroot /path/to/buildroot bash
+#
+# Next, just type:
+# $ metabuild
+# This will:
+#  1) Run ./configure if necessary
+#  2) Run make
+#
+# The build output is automatically logged to $TMPDIR/build-$(PWD).log.
+# For example, invoking metabuild in a directory named "foo" will log
+# to /tmp/build-foo.log
+#
+# You can pass arguments to metabuild; if they start with '--', they're
+# given to configure.  Otherwise, they're passed to make.
+#
+# $ metabuild --enable-libfoo  # passed to configure
+# $ metabuild -j 1             # passed to make
+
 import os,sys,subprocess,tempfile
 from multiprocessing import cpu_count
 import glib,gio
@@ -12,9 +38,17 @@ if os.path.isdir('/lib64'):
     libdir=os.path.join(root, 'lib64')
 else:
     libdir=os.path.join(root, 'lib')
-configargs=['--prefix=' + root, '--libdir=' + libdir]
-configargs.extend(sys.argv[1:])
-if not os.path.exists('configure'):
+
+configargs = ['--prefix=' + root, '--libdir=' + libdir]
+makeargs = ['make', '-j', '%d' % (cpu_count() * 2, )]
+for arg in sys.argv[1:]:
+    if arg.startswith('--'):
+        configargs.append(arg)
+    else:
+        makeargs.append(arg)
+
+have_configure=(os.path.exists('configure.ac') or os.path.exists('configure.in'))
+if have_configure and not os.path.exists('configure'):
     if os.path.exists('autogen.sh'):
         args = ['./autogen.sh']
         args.extend(configargs)
@@ -25,7 +59,7 @@ if not os.path.exists('configure'):
         args.extend(configargs)
         subprocess.check_call(args, stdout=sys.stdout, stderr=sys.stderr)
 prefix_matches=True
-if os.path.exists('config.log'):
+if have_configure and os.path.exists('config.log'):
     previous_prefix = None
     f = open('config.log')
     for line in f:
@@ -37,7 +71,7 @@ if os.path.exists('config.log'):
         print "Reruning configure due to prefix change (%r -> %r)" % (root, previous_prefix)
         prefix_matches=False
 
-if not os.path.exists('Makefile') or not prefix_matches:
+if have_configure and (not os.path.exists('Makefile') or not prefix_matches):
     args = ['./configure']
     args.extend(configargs)
     subprocess.check_call(args, stdout=sys.stdout, stderr=sys.stderr)
@@ -76,13 +110,11 @@ try:
 except OSError, e:
     pass
 logfile_write_fd = os.open(logfile_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL)
-sys.stdout.write('build: logging to %r\n' % (logfile_path, ))
+sys.stdout.write('metabuild: logging to %r\n' % (logfile_path, ))
 sys.stdout.flush()
 def child_setup(*args):
     os.dup2(logfile_write_fd, 1)
     os.dup2(logfile_write_fd, 2)
-makeargs = ['make', '-j', '%d' % (cpu_count() * 2, )]
-makeargs.extend(sys.argv[1:])
 (make_pid, stdin_fd, stdout_fd, stderr_fd) = \
     glib.spawn_async(makeargs,
                      flags=(glib.SPAWN_DO_NOT_REAP_CHILD | glib.SPAWN_SEARCH_PATH),
@@ -97,5 +129,5 @@ def on_child(pid, condition):
 glib.child_watch_add(make_pid, on_child)
 loop.run()
 tail.finish()
-print "build: make exited with status %r, logfile=%r" % (build_condition, logfile_path)
+print "metabuild: make exited with status %r, logfile=%r" % (build_condition, logfile_path)
 sys.exit(0 if build_condition == 0 else 1)

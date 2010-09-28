@@ -13,6 +13,7 @@ import sys
 import subprocess
 import tempfile
 import shutil
+from StringIO import StringIO
 
 def check_call_verbose(*args, **kwargs):
     print "Running: %r %r" % (args[0], kwargs)
@@ -23,6 +24,7 @@ def popen_verbose(*args, **kwargs):
     return subprocess.Popen(*args, **kwargs)
 
 def list_source_names_in_dir(dirpath):
+    """Return all source RPM names from directory (unsorted, may include duplicates)."""
     files = os.listdir(dirpath)
     sources = []
     for f in files:
@@ -33,6 +35,7 @@ def list_source_names_in_dir(dirpath):
     return sources
 
 def delete_old_rpms_in_dir(dirpath):
+    """Ensure there's only one version of each binary RPM in a directory."""
     proc = popen_verbose(['repomanage', '-o', '.'], stdout=subprocess.PIPE,
                          stderr=sys.stderr,
                          cwd=dirpath)
@@ -41,15 +44,95 @@ def delete_old_rpms_in_dir(dirpath):
         if line.endswith('.rpm') and os.path.exists(line):
             os.unlink(line)
 
+def return_binary_pkgs_from_srpm(srpmfn):
+    import glob
+    import rpm
+    mydir = tempfile.mkdtemp()
+    binary_pkgs = []
+    rc = subprocess.Popen(['rpm2cpio', srpmfn],stdout=subprocess.PIPE)
+    cs = subprocess.Popen(['cpio', '--quiet', '-i', '*.spec'], cwd=mydir,
+                          stdin=rc.stdout, stdout=subprocess.PIPE, stderr=open('/dev/null', 'w'))
+    output = cs.communicate()[0]
+    specs = glob.glob(mydir + '/*.spec')
+    if not specs:
+        return binary_pkgs
+    spkg = rpm.spec(specs[0])
+    for p in spkg.packages:
+        binary_pkgs.append(p.header['name'])
+    return binary_pkgs
+
+def sort_srpms_by_build_order(srpms):
+    """Input: list of file paths to source RPMs.
+Output: Sorted list."""
+    import yum
+    my = yum.YumBase()
+    my.preconf.init_plugins=False
+    my.setCacheDir()
+
+    build_reqs = {}
+    build_bin = {}
+    srpms_to_pkgs = {}
+    
+    for i in srpms:
+        # generate the list of binpkgs the srpms create 
+        build_bin[i] = return_binary_pkgs_from_srpm(i)
+    
+        # generate the list of provides in the repos we know about from those binpkgs (if any)
+        p_names = []
+        for name in build_bin[i]:
+            providers = my.pkgSack.searchNevra(name=name)
+            if providers:
+                p_names.extend(providers[0].provides_names)
+        build_bin[i].extend(p_names)
+    
+        # setup the build_reqs
+        build_reqs[i] = []
+    
+    for i in srpms:
+        # go through each srpm and take its buildrequires and resolve them out to one of other
+        # srpms, if possible using the build_bin list we just generated
+        # toss out any pkg which doesn't map back - this only does requires NAMES - not versions
+        # so don't go getting picky about versioning here.
+        lp = yum.packages.YumLocalPackage(ts=my.ts, filename=i)
+        srpms_to_pkgs[i] = lp
+        for r in lp.requires_names:
+            for srpm in build_bin:
+                if r in build_bin[srpm]:
+                    build_reqs[i].append(srpm)
+    
+    # output the results in a format tsort(1) can cope with
+    (tmpfd, temppath) = tempfile.mkstemp()
+    tmpf = os.fdopen(tmpfd, 'w')
+    for (pkg,reqlist) in build_reqs.items():
+        for req in reqlist:
+            tmpf.write('%s %s' % (pkg, req))
+            tmpf.write('\n')
+    tmpf.close()
+
+    tsort_proc = subprocess.Popen(['tsort', temppath], stdout=subprocess.PIPE,
+                                  stderr=sys.stderr)
+    output_str = tsort_proc.communicate()[0]
+    output = StringIO(output_str)
+    output_str = None
+    tsort_proc.wait()
+    os.unlink(temppath)
+    result = []
+    # Reverse output order
+    for line in output:
+        result.insert(0, line.strip())
+    return result
+
 def main():
     try:
         opts, args = getopt.getopt(sys.argv[1:], '', ['root=', 'resultdir=', 'logdir=', 'delete-old',
-                                                      'continue-on-fail', 'skip-have-build', 'save-temps'])
+                                                      'continue-on-fail', 'skip-have-build', 'save-temps',
+                                                      'auto-sort'])
     except getopt.GetoptError, e:
         print unicode(e)
         print "Usage: mock-many-srpms --root=fedora-13-x86-64 --root=fedora-13-i386 --logdir=/path/to/logdir --resultdir=/path/to/repo rpm1 rpm2 ..."
         sys.exit(1)
         
+    auto_sort = False
     save_temps = False
     continue_on_fail = False
     skip_have_build = False
@@ -72,6 +155,8 @@ def main():
             skip_have_build = True
         elif o in ('--save-temps'):
             save_temps = True
+        elif o in ('--auto-sort'):
+            auto_sort = True
 
     if len(roots) == 0:
         print "Must specify at least one --root"
@@ -90,6 +175,11 @@ def main():
     for arg in args:
         if not os.path.isfile(arg):
             print "Couldn't find source RPM '%r'" % (arg, )
+
+    if auto_sort:
+        print "Auto-sorting by build order"
+        args = sort_srpms_by_build_order(args)
+        print "Determined build order: %r" % (args, )
             
     if not os.path.exists(resultdir):
         print "Creating initial empty repository in %r" % (resultdir, )

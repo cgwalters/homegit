@@ -1,4 +1,10 @@
 #!/bin/sh
+
+# inroot: Set lots of environment variables which act as a sort of opt-in
+# "chroot".  See also "jhbuild".
+# Copyright 2010 Colin Walters <walters@verbum.org>
+# Licensed under the new-BSD license (http://www.opensource.org/licenses/bsd-license.php)
+
 set -e
 root=$1
 shift

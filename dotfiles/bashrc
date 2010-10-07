@@ -19,19 +19,19 @@ export EDITOR
 _format_wd ()
 {
   pwd=$(pwd)
-  base=$(basename $pwd)
-  parent=$(basename $(dirname $pwd)) 
-  pparent=$(basename $(dirname $parent)) 
-  if test $pparent != "/"; then
+  base=$(basename "$pwd")
+  parent=$(basename $(dirname "$pwd")) 
+  pparent=$(basename $(dirname "$parent")) 
+  if test "$pparent" != "/"; then
     echo -n "$parent/";
-    echo -n $base;
+    echo -n "$base";
   else 
-    if test $parent != "/"; then
+    if test "$parent" != "/"; then
       echo -n "/$parent/"
-      echo -n $base;
+      echo -n "$base";
     else
       echo -n "/";
-      echo -n $base;
+      echo -n "$base";
     fi
   fi
 }

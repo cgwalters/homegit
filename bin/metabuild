@@ -39,42 +39,21 @@ if os.path.isdir('/lib64'):
 else:
     libdir=os.path.join(root, 'lib')
 
+default_make_parallel = ['-j', '%d' % (cpu_count() * 6, )]
+user_specified_jobs = False
 configargs = ['--prefix=' + root, '--libdir=' + libdir]
-makeargs = ['make', '-j', '%d' % (cpu_count() * 2, )]
+makeargs = ['make']
 for arg in sys.argv[1:]:
     if arg.startswith('--'):
         configargs.append(arg)
     else:
+        if arg == '-j':
+            user_specified_jobs = True
         makeargs.append(arg)
+if not user_specified_jobs:
+    makeargs.extend(default_make_parallel)
 
-have_configure=(os.path.exists('configure.ac') or os.path.exists('configure.in'))
-if have_configure and not os.path.exists('configure'):
-    if os.path.exists('autogen.sh'):
-        args = ['./autogen.sh']
-        args.extend(configargs)
-        subprocess.check_call(args, stdout=sys.stdout, stderr=sys.stderr)
-    else:
-        subprocess.check_call(['autoreconf', '-f', '-i'], stdout=sys.stdout, stderr=sys.stderr)
-        args = ['./configure']
-        args.extend(configargs)
-        subprocess.check_call(args, stdout=sys.stdout, stderr=sys.stderr)
-prefix_matches=True
-if have_configure and os.path.exists('config.log'):
-    previous_prefix = None
-    f = open('config.log')
-    for line in f:
-        if line.startswith('prefix=\''):
-            previous_prefix = line[8:-2]
-            break
-    f.close()
-    if previous_prefix != root:
-        print "Reruning configure due to prefix change (%r -> %r)" % (root, previous_prefix)
-        prefix_matches=False
-
-if have_configure and (not os.path.exists('Makefile') or not prefix_matches):
-    args = ['./configure']
-    args.extend(configargs)
-    subprocess.check_call(args, stdout=sys.stdout, stderr=sys.stderr)
+loop = glib.MainLoop()
 
 class Tail(object):
     def __init__(self, filename, output):
@@ -82,26 +61,36 @@ class Tail(object):
         self.output = output
         self._gfile = gio.File(path=filename)
         self._mon = self._gfile.monitor(gio.FILE_MONITOR_NONE)
-        self._fd = os.open(self.filename, os.O_RDONLY)
-        self._position = 0
+        self._instream = self._gfile.read()
+        self._read_queued = False
+        self._quit_data = None
         self._mon.connect('changed', self._on_changed)
-        self._do_read()
 
     def _do_read(self):
-        buf = os.read(self._fd, 8192)
-        while buf != '':
-            self._position += len(buf)
+        if self._read_queued:
+            return
+        self._read_queued = True
+        self._instream.read_async(8192, self._on_read)
+
+    def _on_read(self, src, result):
+        self._read_queued = False
+        buf = src.read_finish(result)
+        if buf != '':
             self.output.write(buf)
-            buf = os.read(self._fd, 8192)
+            self._do_read()
+        elif self._quit_data:
+            self._quit_data[0].quit()
+            self._quit_data[1]()
 
     def _on_changed(self, mon, gfile, other, event):
         self._do_read()
 
-    def finish(self):
+    def start(self):
         self._do_read()
 
-loop = glib.MainLoop()
-build_condition = None
+    def finish(self, loop, callback):
+        self._quit_data = (loop, callback)
+        self._do_read()
 
 tempdir = os.environ.get('TMPDIR', '/tmp')
 logfile_path = os.path.join(tempdir, 'build-%s.log' % (os.path.basename(os.getcwd()), ))
@@ -110,24 +99,111 @@ try:
 except OSError, e:
     pass
 logfile_write_fd = os.open(logfile_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL)
+logfile_f = os.fdopen(logfile_write_fd, "w")
 sys.stdout.write('metabuild: logging to %r\n' % (logfile_path, ))
 sys.stdout.flush()
-def child_setup(*args):
-    os.dup2(logfile_write_fd, 1)
-    os.dup2(logfile_write_fd, 2)
-(make_pid, stdin_fd, stdout_fd, stderr_fd) = \
-    glib.spawn_async(makeargs,
-                     flags=(glib.SPAWN_DO_NOT_REAP_CHILD | glib.SPAWN_SEARCH_PATH),
-                     child_setup=child_setup)
-os.close(logfile_write_fd)
+
+loop = glib.MainLoop()
+
 tail = Tail(logfile_path, sys.stdout)
-def on_child(pid, condition):
-    global loop
-    global build_condition
-    build_condition = condition
-    loop.quit()
-glib.child_watch_add(make_pid, on_child)
+tail.start()
+
+def log(msg):
+    fullmsg = 'metabuild: ' + msg + '\n'
+    logfile_f.write(fullmsg)
+    logfile_f.flush()
+
+def global_failure_handler():
+    tail.finish(loop, lambda: sys.exit(1))
+
+class BuildProcess(object):
+    def __init__(self, args, cwd=None):
+        self.args = args
+        self.pid = None
+        self.next_callback = None
+
+    def _child_setup(self, *args):
+        nullfd = os.open('/dev/null', os.O_RDONLY)
+        os.dup2(nullfd, 0)
+        os.close(nullfd)
+        os.dup2(logfile_write_fd, 1)
+
+        os.dup2(logfile_write_fd, 2)
+
+    def _exit_callback(self, pid, condition):
+        log("pid %d exited with condition %d" % (pid, condition))
+        if condition != 0:
+            global_failure_handler()
+        else:
+            glib.idle_add(self.next_callback)
+
+    def run_async(self, exit_callback):
+        log("Running: %r" % (self.args, ))
+        (pid, stdin_fd, stdout_fd, stderr_fd) = \
+            glib.spawn_async(self.args,
+                             flags=(glib.SPAWN_DO_NOT_REAP_CHILD | glib.SPAWN_SEARCH_PATH),
+                             child_setup=self._child_setup)
+        self.pid = pid
+        self.next_callback = exit_callback
+        glib.child_watch_add(pid, self._exit_callback)
+
+have_configure=(os.path.exists('configure.ac') or os.path.exists('configure.in'))
+
+def phase_bootstrap():        
+    if have_configure and not os.path.exists('configure'):
+        if os.path.exists('autogen.sh'):
+            log("Detected GNOME-style autogen.sh, using it")
+            args = ['./autogen.sh']
+            args.extend(configargs)
+            autogen = BuildProcess(args)
+            autogen.run_async(phase_configure)
+        else:
+            log("No autogen.sh, trying autoreconf")
+            autogen = BuildProcess(['autoreconf', '-f', '-i'])
+            autogen.run_async(phase_configure)
+    else:
+        phase_configure()
+
+def phase_configure():
+    prefix_matches=True
+    if have_configure and os.path.exists('config.log'):
+        previous_prefix = None
+        f = open('config.log')
+        for line in f:
+            if line.startswith('prefix=\''):
+                previous_prefix = line[8:-2]
+                break
+        f.close()
+        if previous_prefix != root:
+            log("Reruning configure due to prefix change (%r -> %r)" % (root, previous_prefix))
+            prefix_matches=False
+    if have_configure and (not os.path.exists('Makefile') or not prefix_matches):
+        log("Detected configure script, using it")
+        args = ['./configure']
+        args.extend(configargs)
+        configure = BuildProcess(args)
+        configure.run_async(phase_build)
+    else:
+        phase_build()
+
+build_status = False
+
+def phase_build():
+    if os.path.exists('Makefile'):
+        log("Detected Makefile, using it")
+        make = BuildProcess(makeargs)
+        make.run_async(phase_complete)
+    else:
+        log("Couldn't find supported build system")
+        log("Known systems:")
+        log("    Makefile: make")
+
+def phase_complete():
+    log("Complete!")
+    tail.finish(loop)
+
+# Start off the process
+phase_bootstrap()
 loop.run()
-tail.finish()
-print "metabuild: make exited with status %r, logfile=%r" % (build_condition, logfile_path)
+
 sys.exit(0 if build_condition == 0 else 1)

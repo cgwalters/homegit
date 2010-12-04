@@ -39,10 +39,13 @@ if os.path.isdir('/lib64'):
 else:
     libdir=os.path.join(root, 'lib')
 
+# "Constants" (well, some are derived from the environment)
+subprocess_nice_args = ['nice', 'ionice', '-c', '3', '-t']
 default_make_parallel = ['-j', '%d' % (cpu_count() * 6, )]
 user_specified_jobs = False
 configargs = ['--prefix=' + root, '--libdir=' + libdir]
 makeargs = ['make']
+
 for arg in sys.argv[1:]:
     if arg.startswith('--'):
         configargs.append(arg)
@@ -117,8 +120,12 @@ def global_failure_handler():
     tail.finish(loop, lambda: sys.exit(1))
 
 class BuildProcess(object):
-    def __init__(self, args, cwd=None):
-        self.args = args
+    def __init__(self, args, cwd=None, nice=True):
+        if nice:
+            self.args = list(subprocess_nice_args)
+            self.args.extend(args)
+        else:
+            self.args = args
         self.pid = None
         self.next_callback = None
 

@@ -13,4 +13,15 @@ if test -d /lib64; then
 else
   libext=
 fi
-exec env INROOT_DIR=${root} ACLOCAL_FLAGS="-I ${root}/share/aclocal $ACLOCAL_FLAGS" XDG_DATA_DIRS=${root}/share:/usr/share LD_LIBRARY_PATH=${root}/lib${libext} PATH=${root}/bin:${PATH} PKG_CONFIG_PATH=${root}/lib${libext}/pkgconfig PYTHONPATH=${root}/lib${libext}/python2.5/site-packages "$@"
+if test -d "${root}/share/aclocal"; then
+  ACLOCAL_FLAGS="-I ${root}/share/aclocal"
+  export ACLOCAL_FLAGS
+fi
+exec env \
+    INROOT_DIR=${root} \
+    XDG_DATA_DIRS=${root}/share:/usr/share \
+    LD_LIBRARY_PATH=${root}/lib${libext} \
+    PATH=${root}/bin:${PATH} \
+    PKG_CONFIG_PATH=${root}/lib${libext}/pkgconfig:${root}/share/pkgconfig \
+    PYTHONPATH=${root}/lib${libext}/python2.5/site-packages \
+    "$@"

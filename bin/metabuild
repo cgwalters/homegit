@@ -41,6 +41,12 @@ else:
 
 # "Constants" (well, some are derived from the environment)
 subprocess_nice_args = ['nice', 'ionice', '-c', '3', '-t']
+
+# In the future we should test for this better; possibly implement a
+# custom fork handler
+if os.uname()[0] == 'Linux':
+    subprocess_nice_args = ['chrt', '--idle', '0'] + subprocess_nice_args
+
 default_make_parallel = ['-j', '%d' % (cpu_count() * 6, )]
 user_specified_jobs = False
 configargs = ['--prefix=' + root, '--libdir=' + libdir]

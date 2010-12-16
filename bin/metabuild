@@ -130,8 +130,19 @@ def log(msg):
 def global_failure_handler():
     tail.finish(loop, lambda: sys.exit(1))
 
+def fatal(msg):
+    log(msg)
+    global_failure_handler()
+
 class BuildProcess(object):
-    def __init__(self, args, cwd=None, nice=True):
+    def __init__(self, args, cwd=None, nice=True, env=None):
+        if env is not None:
+            srcenv = env
+        else:
+            srcenv = os.environ
+        self.env = []
+        for k, v in srcenv.iteritems():
+            self.env.append('%s=%s' % (k, v))
         if nice:
             self.args = list(subprocess_nice_args)
             self.args.extend(args)
@@ -159,32 +170,66 @@ class BuildProcess(object):
         log("Running: %r" % (self.args, ))
         (pid, stdin_fd, stdout_fd, stderr_fd) = \
             glib.spawn_async(self.args,
+                             envp=self.env,
                              flags=(glib.SPAWN_DO_NOT_REAP_CHILD | glib.SPAWN_SEARCH_PATH),
                              child_setup=self._child_setup)
         self.pid = pid
         self.next_callback = exit_callback
         glib.child_watch_add(pid, self._exit_callback)
 
-have_configure=(os.path.exists('configure.ac') or os.path.exists('configure.in'))
+class BuildSystemScanner(object):
+    @classmethod
+    def _find_file(cls, names):
+        for name in names:
+            if os.path.exists(name):
+                return name
+        return None
+
+    @classmethod
+    def get_configure_source_script(cls):
+        return cls._find_file(('./configure.ac', './configure.in'))
+
+    @classmethod
+    def get_configure_script(cls):
+        return cls._find_file(('./configure', ))
+
+    @classmethod
+    def get_bootstrap_script(cls):
+        return cls._find_file(('./autogen.sh', ))
+
+    @classmethod
+    def get_makefile(cls):
+        return cls._find_file(('Makefile', ))
 
 def phase_bootstrap():        
-    if have_configure and not os.path.exists('configure'):
-        if os.path.exists('autogen.sh'):
-            log("Detected GNOME-style autogen.sh, using it")
-            args = ['./autogen.sh']
-            args.extend(configargs)
-            autogen = BuildProcess(args)
-            autogen.run_async(phase_configure)
-        else:
-            log("No autogen.sh, trying autoreconf")
-            autogen = BuildProcess(['autoreconf', '-f', '-i'])
-            autogen.run_async(phase_configure)
-    else:
+    have_configure = BuildSystemScanner.get_configure_script() 
+    have_configure_source = BuildSystemScanner.get_configure_source_script()
+    if not (have_configure or have_configure_source):
+        fatal("No configure or bootstrap script detected; unknown buildsystem")
+        return
+    if have_configure:
         phase_configure()
+    else:
+        bootstrap = BuildSystemScanner.get_bootstrap_script()
+        if bootstrap:
+            log("Detected bootstrap script: %s, using it" % (bootstrap, ))
+            args = [bootstrap]
+            args.extend(configargs)
+            # Add NOCONFIGURE; GNOME style scripts use this
+            env = dict(os.environ)
+            env['NOCONFIGURE'] = '1'
+            bootstrap_proc= BuildProcess(args, env=env)
+            bootstrap_proc.run_async(phase_configure)
+        else:
+            log("No bootstrap script found; using generic autoreconf")
+            bootstrap_proc = BuildProcess(['autoreconf', '-f', '-i'])
+            bootstrap_proc.run_async(phase_configure)
+            phase_configure()
 
 def phase_configure():
     prefix_matches=True
-    if have_configure and os.path.exists('config.log'):
+    configure = BuildSystemScanner.get_configure_script()
+    if configure and os.path.exists('config.log'):
         previous_prefix = None
         f = open('config.log')
         for line in f:
@@ -195,7 +240,7 @@ def phase_configure():
         if previous_prefix != root:
             log("Reruning configure due to prefix change (%r -> %r)" % (root, previous_prefix))
             prefix_matches=False
-    if have_configure and (not os.path.exists('Makefile') or not prefix_matches):
+    if configure and (not os.path.exists('Makefile') or not prefix_matches):
         log("Detected configure script, using it")
         args = ['./configure']
         args.extend(configargs)

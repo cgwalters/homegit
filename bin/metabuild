@@ -201,6 +201,19 @@ class BuildSystemScanner(object):
     def get_makefile(cls):
         return cls._find_file(('Makefile', ))
 
+    @classmethod
+    def get_make_requires_v1(cls):
+        src = cls.get_configure_source_script()
+        if not src:
+            return False
+        f = open(src)
+        for line in f:
+            if line.find('AM_SILENT_RULES') >= 0:
+                f.close()
+                return True
+        f.close()
+        return False
+
 def phase_bootstrap():        
     have_configure = BuildSystemScanner.get_configure_script() 
     have_configure_source = BuildSystemScanner.get_configure_source_script()
@@ -254,6 +267,11 @@ build_status = False
 def phase_build():
     if os.path.exists('Makefile'):
         log("Detected Makefile, using it")
+        need_v1 = BuildSystemScanner.get_make_requires_v1()
+        args = makeargs
+        if need_v1:
+            log("Detected AM_SILENT_RULES, overriding it with V=1")
+            args.append('V=1')
         make = BuildProcess(makeargs)
         make.run_async(phase_complete)
     else:

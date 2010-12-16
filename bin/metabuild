@@ -72,6 +72,7 @@ class Tail(object):
         self._mon = self._gfile.monitor(gio.FILE_MONITOR_NONE)
         self._instream = self._gfile.read()
         self._read_queued = False
+        self._final_read = False
         self._quit_data = None
         self._mon.connect('changed', self._on_changed)
 
@@ -88,8 +89,12 @@ class Tail(object):
             self.output.write(buf)
             self._do_read()
         elif self._quit_data:
-            self._quit_data[0].quit()
-            self._quit_data[1]()
+            if self._final_read:
+                self._quit_data[0].quit()
+                self._quit_data[1]()
+            else:
+                self._final_read = True
+                self._do_read()
 
     def _on_changed(self, mon, gfile, other, event):
         self._do_read()

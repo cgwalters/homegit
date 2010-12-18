@@ -11,7 +11,16 @@ if [ -f /etc/bash_completion ]; then
   . /etc/bash_completion
 fi
 
+HISTSIZE=5000
+export HISTSIZE
 shopt -s histappend
+
+UNFUCK_BASH_HISTORY="history -a"
+if test -z "$PROMPT_COMMAND"; then
+   PROMPT_COMMAND="$PROMPT_COMMAND;$UNFUCK_BASH_HISTORY"
+else
+   PROMPT_COMMAND="$UNFUCK_BASH_HISTORY"
+fi   
 
 EDITOR="emacsclient"
 export EDITOR

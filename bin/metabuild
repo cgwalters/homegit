@@ -48,7 +48,6 @@ if os.uname()[0] == 'Linux':
     subprocess_nice_args = ['chrt', '--idle', '0'] + subprocess_nice_args
 
 default_make_parallel = ['-j', '%d' % (cpu_count() * 6, )]
-user_specified_jobs = False
 configargs = ['--prefix=' + root, '--libdir=' + libdir]
 makeargs = ['make']
 
@@ -56,11 +55,7 @@ for arg in sys.argv[1:]:
     if arg.startswith('--'):
         configargs.append(arg)
     else:
-        if arg == '-j':
-            user_specified_jobs = True
         makeargs.append(arg)
-if not user_specified_jobs:
-    makeargs.extend(default_make_parallel)
 
 loop = glib.MainLoop()
 
@@ -264,16 +259,29 @@ def phase_configure():
 
 build_status = False
 
+def _phase_build_makefile():
+    log("Detected Makefile, using it")
+    args = makeargs
+    user_specified_jobs = False
+    for arg in args:
+        if arg == '-j':
+            user_specified_jobs = True
+
+    need_v1 = BuildSystemScanner.get_make_requires_v1()
+    if need_v1:
+        log("Detected AM_SILENT_RULES, overriding it with V=1")
+        args.append('V=1')
+
+    if not user_specified_jobs:
+        log("No jobs specified; overriding to be default parallel")
+        args.extend(default_make_parallel)
+
+    make = BuildProcess(args)
+    make.run_async(phase_complete)
+
 def phase_build():
     if os.path.exists('Makefile'):
-        log("Detected Makefile, using it")
-        need_v1 = BuildSystemScanner.get_make_requires_v1()
-        args = makeargs
-        if need_v1:
-            log("Detected AM_SILENT_RULES, overriding it with V=1")
-            args.append('V=1')
-        make = BuildProcess(makeargs)
-        make.run_async(phase_complete)
+        _phase_build_makefile()
     else:
         log("Couldn't find supported build system")
         log("Known systems:")

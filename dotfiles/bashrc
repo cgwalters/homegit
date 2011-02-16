@@ -38,12 +38,12 @@ _format_wd ()
 
 _format_inroot_dir ()
 {
-  if test -z "$INROOT_DIR" && test -n "$CERTIFIED_GNOMIE"; then
-    # sort of a hack...
-    INROOT_DIR="$MONO_GAC_PREFIX"
-  fi
   if test -n "$INROOT_DIR"; then
     echo " [root=$INROOT_DIR]"
+  else
+    if test -n "$CERTIFIED_GNOMIE"; then
+      echo " [jhbuild=$MONO_GAC_PREFIX]"
+    fi
   fi
 }
 

@@ -1,0 +1,43 @@
+#!/usr/bin/env python
+
+# metabuild-gitball: "make dist" equivalent that uses git
+# Creates a foo-version.commitid.tar.bz2 file.
+# 
+# Copyright 2011 Colin Walters <walters@verbum.org>
+# Licensed under the new-BSD license (http://www.opensource.org/licenses/bsd-license.php)
+
+import os
+import sys
+import re
+import subprocess
+
+def fatal(msg):
+    sys.stderr.write(msg + "\n")
+    sys.exit(1)
+
+def _extract_config_log_variable(name):
+    f = open('config.log')
+    keystart = name + '=\''
+    for line in f:
+        if line.startswith(keystart):
+            return line[len(keystart):-2]
+    f.close()
+    fatal("Failed to find '%s' in config.status" % (name, ))
+
+if not os.path.isfile('config.log'):
+    fatal("Couldn't find config.log; did you run configure?")
+package = _extract_config_log_variable('PACKAGE_TARNAME')
+version = _extract_config_log_variable('VERSION')
+
+commitid = subprocess.Popen(['git', 'rev-parse', 'HEAD'], stdout=subprocess.PIPE).communicate()[0]
+commitid = commitid[0:8]
+prefix = '%s-%s.%s' % (package, version, commitid)
+target_filename = '%s.tar.bz2' % (prefix, )
+gitproc = subprocess.Popen(['git', 'archive', '--format=tar',
+                            '--prefix=%s/' % (prefix, ), 'HEAD'], stdout=subprocess.PIPE,
+                           stderr=sys.stderr)
+tarfile_f = open(target_filename, 'w')
+bzproc = subprocess.Popen(['bzip2', '-c'], stdout=tarfile_f, stdin=gitproc.stdout, stderr=sys.stderr)
+tarfile_f.close()
+bzproc.wait()
+print "Created %s" % (target_filename, )

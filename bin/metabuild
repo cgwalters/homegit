@@ -50,7 +50,7 @@ if os.uname()[0] == 'Linux':
 output_print_timeout_mseconds = 5000
 
 warning_re = re.compile(': (warning)|(error)|(fatal error): ')
-output_whitelist_re = re.compile(r'^make(\[[0-9]+\])?: Entering directory')
+output_whitelist_re = re.compile(r'^(make(\[[0-9]+\])?: Entering directory)|(metabuild: )')
 default_make_parallel = ['-j', '%d' % (cpu_count() * 6, )]
 configargs = ['--prefix=' + root, '--libdir=' + libdir]
 makeargs = ['make']

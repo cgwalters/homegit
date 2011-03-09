@@ -47,7 +47,9 @@ subprocess_nice_args = ['nice', 'ionice', '-c', '3', '-t']
 if os.uname()[0] == 'Linux':
     subprocess_nice_args = ['chrt', '--idle', '0'] + subprocess_nice_args
 
-output_print_timeout_mseconds = 5000
+# Disable this for now
+#output_print_timeout_mseconds = 5000
+output_print_timeout_mseconds = 0
 
 warning_re = re.compile(r': ((warning)|(error)|(fatal error)): ')
 output_whitelist_re = re.compile(r'^(make(\[[0-9]+\])?: Entering directory)|(metabuild: )')
@@ -142,7 +144,7 @@ class OutputFilter(object):
                     self.output.write(line + '\n')
                 else:
                     self._filtered_line_count += 1
-        if self._timeout_write_status_id == 0:
+        if self._timeout_write_status_id == 0 and self._timeout_write_status_msec > 0:
             self._timeout_write_status_id = glib.timeout_add(self._timeout_write_status_msec, self._timeout_write_status)
 
     def _on_read(self, src, result):

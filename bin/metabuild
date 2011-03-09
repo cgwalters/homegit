@@ -49,15 +49,19 @@ if os.uname()[0] == 'Linux':
 
 output_print_timeout_mseconds = 5000
 
-warning_re = re.compile(': (warning)|(error)|(fatal error): ')
+warning_re = re.compile(r': ((warning)|(error)|(fatal error)): ')
 output_whitelist_re = re.compile(r'^(make(\[[0-9]+\])?: Entering directory)|(metabuild: )')
 default_make_parallel = ['-j', '%d' % (cpu_count() * 6, )]
 configargs = ['--prefix=' + root, '--libdir=' + libdir]
 makeargs = ['make']
 
+target_phase = 'build'
+
 for arg in sys.argv[1:]:
     if arg.startswith('--'):
         configargs.append(arg)
+    elif arg == 'install':
+        target_phase = 'install'
     else:
         makeargs.append(arg)
 
@@ -97,8 +101,29 @@ class OutputFilter(object):
         self._timeout_write_status_id = 0
         return False
 
-    def _final_output(self):
-        self.output.write("metabuild: %d warnings\n" % (self._warning_count, ))
+    def _write_last_log_lines(self):
+        f = open(logfile_path)
+        lines = []
+        for line in f:
+            if line.startswith('metabuild: '):
+                continue
+            lines.append(line)
+            if len(lines) > 10:
+                lines.pop(0)
+        f.close()
+        for line in lines:
+            self.output.write(line)
+
+    def _final_output(self, successful):
+        if not successful:
+            # disabled temporarily
+            #self._write_last_log_lines()
+            pass
+        self.output.write("metabuild: %s %s: %d warnings\n" % (target_phase,
+                                                               'success' if successful else 'failed',
+                                                               self._warning_count, ))
+        self.output.write("metabuild: full log path: %s\n" % (logfile_path, ))
+        sys.exit(0 if successful else 1)
 
     def _flush(self):
         while True:
@@ -107,15 +132,16 @@ class OutputFilter(object):
                 break
             line = self._buf[0:p]
             self._buf = self._buf[p+1:]
-            match = self._warning_re.match(line)
+            match = self._warning_re.search(line)
             if match:
-                self._warning_count =+ 1
-            if not match:
-                match = self._nonfilter_re.match(line)
-            if match:
+                self._warning_count += 1
                 self.output.write(line + '\n')
-            else:
-                self._filtered_line_count += 1
+            else:    
+                match = self._nonfilter_re.search(line)
+                if match:
+                    self.output.write(line + '\n')
+                else:
+                    self._filtered_line_count += 1
         if self._timeout_write_status_id == 0:
             self._timeout_write_status_id = glib.timeout_add(self._timeout_write_status_msec, self._timeout_write_status)
 
@@ -131,9 +157,8 @@ class OutputFilter(object):
                 if self._timeout_write_status_id > 0:
                     glib.source_remove(self._timeout_write_status_id)
                     self._timeout_write_status_id = 0
-                self._final_output()
+                self._final_output(self._quit_data[1])
                 self._quit_data[0].quit()
-                self._quit_data[1]()
             else:
                 self._final_read = True
                 self._do_read()
@@ -144,8 +169,8 @@ class OutputFilter(object):
     def start(self):
         self._do_read()
 
-    def finish(self, loop, callback):
-        self._quit_data = (loop, callback)
+    def finish(self, loop, success):
+        self._quit_data = (loop, success)
         self._do_read()
 
 tempdir = os.environ.get('TMPDIR', '/tmp')
@@ -170,7 +195,7 @@ def log(msg):
     logfile_f.flush()
 
 def global_failure_handler():
-    tail.finish(loop, lambda: sys.exit(1))
+    tail.finish(loop, False)
 
 def fatal(msg):
     log(msg)
@@ -324,7 +349,7 @@ def _phase_build_makefile():
         args.extend(default_make_parallel)
 
     make = BuildProcess(args)
-    make.run_async(phase_complete)
+    make.run_async(phase_install)
 
 def phase_build():
     if os.path.exists('Makefile'):
@@ -334,9 +359,20 @@ def phase_build():
         log("Known systems:")
         log("    Makefile: make")
 
+def _phase_install_makefile():
+    log("Doing install")
+    make = BuildProcess(['make', 'install'])
+    make.run_async(phase_complete)
+
+def phase_install():
+    if target_phase != 'install':
+        phase_complete()
+        return
+    if os.path.exists('Makefile'):
+        _phase_install_makefile()
+
 def phase_complete():
-    log("Complete!")
-    tail.finish(loop, lambda: sys.exit(0))
+    tail.finish(loop, True)
 
 # Start off the process
 phase_bootstrap()

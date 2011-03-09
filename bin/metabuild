@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 # metabuild: Generic build system wrapper
-# Copyright 2010 Colin Walters <walters@verbum.org>
+# Copyright 2010, 2011 Colin Walters <walters@verbum.org>
 # Licensed under the new-BSD license (http://www.opensource.org/licenses/bsd-license.php)
 
 # metabuild currently just wraps autotools (configure+make).
@@ -26,7 +26,7 @@
 # $ metabuild --enable-libfoo  # passed to configure
 # $ metabuild -j 1             # passed to make
 
-import os,sys,subprocess,tempfile
+import os,sys,subprocess,tempfile,re
 from multiprocessing import cpu_count
 import glib,gio
 
@@ -47,6 +47,10 @@ subprocess_nice_args = ['nice', 'ionice', '-c', '3', '-t']
 if os.uname()[0] == 'Linux':
     subprocess_nice_args = ['chrt', '--idle', '0'] + subprocess_nice_args
 
+output_print_timeout_mseconds = 5000
+
+warning_re = re.compile(': (warning)|(error)|(fatal error): ')
+output_whitelist_re = re.compile(r'^make(\[[0-9]+\])?: Entering directory')
 default_make_parallel = ['-j', '%d' % (cpu_count() * 6, )]
 configargs = ['--prefix=' + root, '--libdir=' + libdir]
 makeargs = ['make']
@@ -59,10 +63,20 @@ for arg in sys.argv[1:]:
 
 loop = glib.MainLoop()
 
-class Tail(object):
+class OutputFilter(object):
     def __init__(self, filename, output):
         self.filename = filename
         self.output = output
+
+        # inherit globals
+        self._warning_re = warning_re
+        self._nonfilter_re = output_whitelist_re
+        self._timeout_write_status_msec = output_print_timeout_mseconds
+
+        self._buf = ''
+        self._warning_count = 0
+        self._filtered_line_count = 0
+        self._timeout_write_status_id = 0
         self._gfile = gio.File(path=filename)
         self._mon = self._gfile.monitor(gio.FILE_MONITOR_NONE)
         self._instream = self._gfile.read()
@@ -77,14 +91,47 @@ class Tail(object):
         self._read_queued = True
         self._instream.read_async(8192, self._on_read)
 
+    def _timeout_write_status(self):
+        self.output.write("metabuild: %d lines of output filtered\n" % (self._filtered_line_count, ))
+        self._filtered_line_count = 0
+        self._timeout_write_status_id = 0
+        return False
+
+    def _final_output(self):
+        self.output.write("metabuild: %d warnings\n" % (self._warning_count, ))
+
+    def _flush(self):
+        while True:
+            p = self._buf.find('\n')
+            if p < 0:
+                break
+            line = self._buf[0:p]
+            self._buf = self._buf[p+1:]
+            match = self._warning_re.match(line)
+            if match:
+                self._warning_count =+ 1
+            if not match:
+                match = self._nonfilter_re.match(line)
+            if match:
+                self.output.write(line + '\n')
+            else:
+                self._filtered_line_count += 1
+        if self._timeout_write_status_id == 0:
+            self._timeout_write_status_id = glib.timeout_add(self._timeout_write_status_msec, self._timeout_write_status)
+
     def _on_read(self, src, result):
         self._read_queued = False
         buf = src.read_finish(result)
         if buf != '':
-            self.output.write(buf)
+            self._buf += buf
+            self._flush()
             self._do_read()
         elif self._quit_data:
             if self._final_read:
+                if self._timeout_write_status_id > 0:
+                    glib.source_remove(self._timeout_write_status_id)
+                    self._timeout_write_status_id = 0
+                self._final_output()
                 self._quit_data[0].quit()
                 self._quit_data[1]()
             else:
@@ -114,7 +161,7 @@ sys.stdout.flush()
 
 loop = glib.MainLoop()
 
-tail = Tail(logfile_path, sys.stdout)
+tail = OutputFilter(logfile_path, sys.stdout)
 tail.start()
 
 def log(msg):

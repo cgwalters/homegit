@@ -104,22 +104,23 @@ class OutputFilter(object):
         return False
 
     def _write_last_log_lines(self):
+        _last_line_limit = 100
         f = open(logfile_path)
         lines = []
         for line in f:
             if line.startswith('metabuild: '):
                 continue
             lines.append(line)
-            if len(lines) > 10:
+            if len(lines) > _last_line_limit:
                 lines.pop(0)
         f.close()
         for line in lines:
+            self.output.write('| ')
             self.output.write(line)
 
     def _final_output(self, successful):
         if not successful:
-            # disabled temporarily
-            #self._write_last_log_lines()
+            self._write_last_log_lines()
             pass
         self.output.write("metabuild: %s %s: %d warnings\n" % (target_phase,
                                                                'success' if successful else 'failed',

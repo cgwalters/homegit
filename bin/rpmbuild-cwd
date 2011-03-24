@@ -7,4 +7,5 @@
 # Copyright (C) 2010 Red Hat, Inc.
 # Written by Colin Walters <walters@verbum.org>
 
-exec rpmbuild --define '_sourcedir .' --define '_specdir .' --define '_builddir .' --define '_srcrpmdir .' --define '_rpmdir .' "$@"
+pwd=$(pwd)
+exec rpmbuild --define "_sourcedir ${pwd}" --define "_specdir ${pwd}" --define "_builddir ${pwd}" --define "_srcrpmdir ${pwd}" --define "_rpmdir ${pwd}" --define "_buildrootdir ${pwd}/.build" "$@"

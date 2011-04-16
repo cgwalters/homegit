@@ -272,7 +272,7 @@ class BuildSystemScanner(object):
         return cls._find_file(('Makefile', ))
 
     @classmethod
-    def get_make_requires_v1(cls):
+    def get_silent_rules(cls):
         src = cls.get_configure_source_script()
         if not src:
             return False
@@ -290,6 +290,12 @@ def phase_bootstrap():
     if not (have_configure or have_configure_source):
         fatal("No configure or bootstrap script detected; unknown buildsystem")
         return
+
+    need_v1 = BuildSystemScanner.get_silent_rules()
+    if need_v1:
+        log("Detected AM_SILENT_RULES, adding --disable-silent-rules to configure")
+        configargs.append('--disable-silent-rules')
+
     if have_configure:
         phase_configure()
     else:
@@ -312,6 +318,7 @@ def phase_bootstrap():
 def phase_configure():
     prefix_matches=True
     configure = BuildSystemScanner.get_configure_script()
+
     if configure and os.path.exists('config.log'):
         previous_prefix = None
         f = open('config.log')
@@ -327,6 +334,7 @@ def phase_configure():
         log("Detected configure script, using it")
         args = ['./configure']
         args.extend(configargs)
+
         configure = BuildProcess(args)
         configure.run_async(phase_build)
     else:
@@ -341,11 +349,6 @@ def _phase_build_makefile():
     for arg in args:
         if arg == '-j':
             user_specified_jobs = True
-
-    need_v1 = BuildSystemScanner.get_make_requires_v1()
-    if need_v1:
-        log("Detected AM_SILENT_RULES, overriding it with V=1")
-        args.append('V=1')
 
     if not user_specified_jobs:
         log("No jobs specified; overriding to be default parallel")

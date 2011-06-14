@@ -61,7 +61,8 @@ def run_sync(args, env=None):
     f.close()
     returncode = proc.wait()
     log("pid %d exited with code %d" % (proc.pid, returncode))
-
+    if returncode != 0:
+        sys.exit(1)
 
 class BuildSystemScanner(object):
     @classmethod

@@ -36,6 +36,17 @@ if 'INROOT_DIR' not in os.environ:
 warning_re = re.compile(r'(: ((warning)|(error)|(fatal error)): )|(make(\[[0-9]+\])?: \*\*\*)')
 output_whitelist_re = re.compile(r'^(make(\[[0-9]+\])?: Entering directory)|(metabuild: )')
 
+_bold_sequence = None
+_normal_sequence = None
+if os.isatty(1):
+    _bold_sequence = subprocess.Popen(['tput', 'bold'], stdout=subprocess.PIPE, stderr=open('/dev/null', 'w')).communicate()[0]
+    _normal_sequence = subprocess.Popen(['tput', 'sgr0'], stdout=subprocess.PIPE, stderr=open('/dev/null', 'w')).communicate()[0]
+def _bold(text):
+    if _bold_sequence is not None:
+        return '%s%s%s' % (_bold_sequence, text, _normal_sequence)
+    else:
+        return text
+
 class Mainloop(object):
     def __init__(self):
         self._running = True
@@ -195,7 +206,7 @@ class OutputFilter(object):
         if not successful:
             self._write_last_log_lines()
             pass
-        self.output.write("metabuild: %s: %d warnings\n" % ('success' if successful else 'failed',
+        self.output.write("metabuild: %s: %d warnings\n" % ('success' if successful else _bold('failed'),
                                                             self._warning_count, ))
         self.output.write("metabuild: full log path: %s\n" % (logfile_path, ))
         sys.exit(0 if successful else 1)

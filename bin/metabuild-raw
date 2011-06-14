@@ -148,7 +148,7 @@ def phase_configure():
         log("Detected configure script, using it")
         args = ['./configure']
         args.extend(configargs)
-        run_sync(configure)
+        run_sync(args)
     phase_build()
 
 build_status = False

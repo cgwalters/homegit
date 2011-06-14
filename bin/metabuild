@@ -27,48 +27,105 @@
 # $ metabuild -j 1             # passed to make
 
 import os,sys,subprocess,tempfile,re
-from multiprocessing import cpu_count
-import glib,gio
+import select,time,stat,fcntl
 
 if 'INROOT_DIR' not in os.environ:
     print "INROOT_DIR not set; run under inroot"
     sys.exit(1)
-root = os.environ['INROOT_DIR']
-if os.path.isdir('/lib64'):
-    libdir=os.path.join(root, 'lib64')
-else:
-    libdir=os.path.join(root, 'lib')
-
-# "Constants" (well, some are derived from the environment)
-subprocess_nice_args = ['nice', 'ionice', '-c', '3', '-t']
-
-# In the future we should test for this better; possibly implement a
-# custom fork handler
-if os.uname()[0] == 'Linux':
-    subprocess_nice_args = ['chrt', '--idle', '0'] + subprocess_nice_args
-
-# Disable this for now
-#output_print_timeout_mseconds = 5000
-output_print_timeout_mseconds = 0
 
 warning_re = re.compile(r'(: ((warning)|(error)|(fatal error)): )|(make(\[[0-9]+\])?: \*\*\*)')
 output_whitelist_re = re.compile(r'^(make(\[[0-9]+\])?: Entering directory)|(metabuild: )')
-default_make_parallel = ['-j', '%d' % (cpu_count() * 6, )]
-configargs = ['--prefix=' + root, '--libdir=' + libdir,
-              '--enable-maintainer-mode'] # We default to this because we want to behave like autogen
-makeargs = ['make']
 
-target_phase = 'build'
+class Mainloop(object):
+    def __init__(self):
+        self._running = True
+        self.poll = select.poll()
+        self._timeouts = []
+        self._pid_watches = []
+        self._fd_callbacks = {}
 
-for arg in sys.argv[1:]:
-    if arg.startswith('--'):
-        configargs.append(arg)
-    elif arg == 'install':
-        target_phase = 'install'
-    else:
-        makeargs.append(arg)
+    def watch_fd(self, fd, callback):
+        self.poll.register(fd)
+        self._fd_callbacks[fd] = callback
 
-loop = glib.MainLoop()
+    def unwatch_fd(self, fd):
+        self.poll.unregister(fd)
+        del self._fd_callbacks[fd]
+
+    def watch_pid(self, pid, callback):
+        self._pid_watches[pid] = callback
+
+    def timeout_add(self, ms, callback):
+        self._timeouts.append((ms, callback))
+
+    def quit(self):
+        self._running = False
+
+    def run_once(self):
+        min_timeout = None
+        if len(self._pid_watches) > 0:
+            min_timeout = 500
+        for (ms, callback) in self._timeouts:
+            if (min_timeout is None) or (ms < min_timeout):
+                min_timeout = ms
+        origtime = time.time() * 1000
+        fds = self.poll.poll(min_timeout)
+        for fd in fds:
+            self._fd_callbacks[fd]()
+        for pid in self._pid_watches:
+            (opid, status) = os.waitpid(pid, os.WNOHANG)
+            if opid != 0:
+                self._pid_watches[pid]()
+                del self._pid_watches[pid]
+        newtime = time.time() * 1000
+        diff = int(newtime - origtime)
+        if diff < 0: diff = 0
+        for i,(ms, callback) in enumerate(self._timeouts):
+            remaining_ms = ms - diff
+            if remaining_ms <= 0:
+                callback()
+            else:
+                self._timeouts[i] = (remaining_ms, callback)
+
+    def run(self):
+        while self._running:
+            self.run_once()
+
+_mainloop = Mainloop()
+
+class FileMonitor(object):
+    def __init__(self):
+        self._paths = {}
+        self._path_modtimes = {}
+        self._timeout = 1000
+        self._timeout_installed = False
+
+    def _stat(self, path):
+        try:
+            st = os.stat(path)
+            return st[stat.ST_MTIME]
+        except OSError, e:
+            return None
+
+    def add(self, path, callback):
+        if path not in self._paths:
+            self._paths[path] = []
+            self._path_modtimes[path] = self._stat(path)
+        self._paths[path].append(callback)
+        if not self._timeout_installed:
+            self._timeout_installed = True
+            _mainloop.timeout_add(self._timeout, self._check_files)
+
+    def _check_files(self):
+        for (path,callbacks) in self._paths.iteritems():
+            mtime = self._stat(path)
+            orig_mtime = self._path_modtimes[path]
+            if (mtime is not None) and (orig_mtime is None or (mtime > orig_mtime)):
+                self._path_modtimes[path] = mtime
+                for cb in callbacks:
+                    cb()
+
+_filemon = FileMonitor()
 
 class OutputFilter(object):
     def __init__(self, filename, output):
@@ -78,31 +135,21 @@ class OutputFilter(object):
         # inherit globals
         self._warning_re = warning_re
         self._nonfilter_re = output_whitelist_re
-        self._timeout_write_status_msec = output_print_timeout_mseconds
 
         self._buf = ''
         self._warning_count = 0
         self._filtered_line_count = 0
-        self._timeout_write_status_id = 0
-        self._gfile = gio.File(path=filename)
-        self._mon = self._gfile.monitor(gio.FILE_MONITOR_NONE)
-        self._instream = self._gfile.read()
-        self._read_queued = False
-        self._final_read = False
-        self._quit_data = None
-        self._mon.connect('changed', self._on_changed)
+        _filemon.add(filename, self._on_changed)
+        self._fd = os.open(filename, os.O_RDONLY)
+        fcntl.fcntl(self._fd, fcntl.F_SETFL, os.O_NONBLOCK)
 
     def _do_read(self):
-        if self._read_queued:
-            return
-        self._read_queued = True
-        self._instream.read_async(8192, self._on_read)
-
-    def _timeout_write_status(self):
-        self.output.write("metabuild: %d lines of output filtered\n" % (self._filtered_line_count, ))
-        self._filtered_line_count = 0
-        self._timeout_write_status_id = 0
-        return False
+        while True:
+            buf = os.read(self._fd, 4096)
+            if buf == '':
+                break
+            self._buf += buf
+        self._flush()
 
     def _write_last_log_lines(self):
         _last_line_limit = 100
@@ -118,16 +165,6 @@ class OutputFilter(object):
         for line in lines:
             self.output.write('| ')
             self.output.write(line)
-
-    def _final_output(self, successful):
-        if not successful:
-            self._write_last_log_lines()
-            pass
-        self.output.write("metabuild: %s %s: %d warnings\n" % (target_phase,
-                                                               'success' if successful else 'failed',
-                                                               self._warning_count, ))
-        self.output.write("metabuild: full log path: %s\n" % (logfile_path, ))
-        sys.exit(0 if successful else 1)
 
     def _flush(self):
         while True:
@@ -146,26 +183,6 @@ class OutputFilter(object):
                     self.output.write(line + '\n')
                 else:
                     self._filtered_line_count += 1
-        if self._timeout_write_status_id == 0 and self._timeout_write_status_msec > 0:
-            self._timeout_write_status_id = glib.timeout_add(self._timeout_write_status_msec, self._timeout_write_status)
-
-    def _on_read(self, src, result):
-        self._read_queued = False
-        buf = src.read_finish(result)
-        if buf != '':
-            self._buf += buf
-            self._flush()
-            self._do_read()
-        elif self._quit_data:
-            if self._final_read:
-                if self._timeout_write_status_id > 0:
-                    glib.source_remove(self._timeout_write_status_id)
-                    self._timeout_write_status_id = 0
-                self._final_output(self._quit_data[1])
-                self._quit_data[0].quit()
-            else:
-                self._final_read = True
-                self._do_read()
 
     def _on_changed(self, mon, gfile, other, event):
         self._do_read()
@@ -173,12 +190,24 @@ class OutputFilter(object):
     def start(self):
         self._do_read()
 
-    def finish(self, loop, success):
-        self._quit_data = (loop, success)
+    def finish(self, successful):
         self._do_read()
+        if not successful:
+            self._write_last_log_lines()
+            pass
+        self.output.write("metabuild: %s: %d warnings\n" % ('success' if successful else 'failed',
+                                                            self._warning_count, ))
+        self.output.write("metabuild: full log path: %s\n" % (logfile_path, ))
+        sys.exit(0 if successful else 1)
 
-tempdir = os.environ.get('TMPDIR', '/tmp')
-logfile_path = os.path.join(tempdir, 'build-%s.log' % (os.path.basename(os.getcwd()), ))
+user_tmpdir = os.environ.get('XDG_RUNTIME_DIR')
+if user_tmpdir is None:
+    user_tmpdir = os.path.join(os.environ.get('TMPDIR', '/tmp'), 'metabuild-%s' % (os.getuid(), ))
+else:
+    user_tmpdir = os.path.join(user_tmpdir, 'metabuild') 
+if not os.path.isdir(user_tmpdir):
+    os.makedirs(user_tmpdir)
+logfile_path = os.path.join(user_tmpdir, '%s.log' % (os.path.basename(os.getcwd()), ))
 try:
     os.unlink(logfile_path)
 except OSError, e:
@@ -187,8 +216,6 @@ logfile_write_fd = os.open(logfile_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL)
 logfile_f = os.fdopen(logfile_write_fd, "w")
 sys.stdout.write('metabuild: logging to %r\n' % (logfile_path, ))
 sys.stdout.flush()
-
-loop = glib.MainLoop()
 
 tail = OutputFilter(logfile_path, sys.stdout)
 tail.start()
@@ -199,188 +226,14 @@ def log(msg):
     logfile_f.flush()
 
 def global_failure_handler():
-    tail.finish(loop, False)
+    tail.finish(False)
 
 def fatal(msg):
     log(msg)
     global_failure_handler()
 
-class BuildProcess(object):
-    def __init__(self, args, cwd=None, nice=True, env=None):
-        if env is not None:
-            srcenv = env
-        else:
-            srcenv = os.environ
-        self.env = []
-        for k, v in srcenv.iteritems():
-            self.env.append('%s=%s' % (k, v))
-        if nice:
-            self.args = list(subprocess_nice_args)
-            self.args.extend(args)
-        else:
-            self.args = args
-        self.pid = None
-        self.next_callback = None
-
-    def _child_setup(self, *args):
-        nullfd = os.open('/dev/null', os.O_RDONLY)
-        os.dup2(nullfd, 0)
-        os.close(nullfd)
-        os.dup2(logfile_write_fd, 1)
-
-        os.dup2(logfile_write_fd, 2)
-
-    def _exit_callback(self, pid, condition):
-        log("pid %d exited with condition %d" % (pid, condition))
-        if condition != 0:
-            global_failure_handler()
-        else:
-            glib.idle_add(self.next_callback)
-
-    def run_async(self, exit_callback):
-        log("Running: %r" % (self.args, ))
-        (pid, stdin_fd, stdout_fd, stderr_fd) = \
-            glib.spawn_async(self.args,
-                             envp=self.env,
-                             flags=(glib.SPAWN_DO_NOT_REAP_CHILD | glib.SPAWN_SEARCH_PATH),
-                             child_setup=self._child_setup)
-        self.pid = pid
-        self.next_callback = exit_callback
-        glib.child_watch_add(pid, self._exit_callback)
-
-class BuildSystemScanner(object):
-    @classmethod
-    def _find_file(cls, names):
-        for name in names:
-            if os.path.exists(name):
-                return name
-        return None
-
-    @classmethod
-    def get_configure_source_script(cls):
-        return cls._find_file(('./configure.ac', './configure.in'))
-
-    @classmethod
-    def get_configure_script(cls):
-        return cls._find_file(('./configure', ))
-
-    @classmethod
-    def get_bootstrap_script(cls):
-        return cls._find_file(('./autogen.sh', ))
-
-    @classmethod
-    def get_makefile(cls):
-        return cls._find_file(('Makefile', ))
-
-    @classmethod
-    def get_silent_rules(cls):
-        src = cls.get_configure_source_script()
-        if not src:
-            return False
-        f = open(src)
-        for line in f:
-            if line.find('AM_SILENT_RULES') >= 0:
-                f.close()
-                return True
-        f.close()
-        return False
-
-def phase_bootstrap():        
-    have_configure = BuildSystemScanner.get_configure_script() 
-    have_configure_source = BuildSystemScanner.get_configure_source_script()
-    if not (have_configure or have_configure_source):
-        fatal("No configure or bootstrap script detected; unknown buildsystem")
-        return
-
-    need_v1 = BuildSystemScanner.get_silent_rules()
-    if need_v1:
-        log("Detected AM_SILENT_RULES, adding --disable-silent-rules to configure")
-        configargs.append('--disable-silent-rules')
-
-    if have_configure:
-        phase_configure()
-    else:
-        bootstrap = BuildSystemScanner.get_bootstrap_script()
-        if bootstrap:
-            log("Detected bootstrap script: %s, using it" % (bootstrap, ))
-            args = [bootstrap]
-            args.extend(configargs)
-            # Add NOCONFIGURE; GNOME style scripts use this
-            env = dict(os.environ)
-            env['NOCONFIGURE'] = '1'
-            bootstrap_proc= BuildProcess(args, env=env)
-            bootstrap_proc.run_async(phase_configure)
-        else:
-            log("No bootstrap script found; using generic autoreconf")
-            bootstrap_proc = BuildProcess(['autoreconf', '-f', '-i'])
-            bootstrap_proc.run_async(phase_configure)
-            phase_configure()
-
-def phase_configure():
-    prefix_matches=True
-    configure = BuildSystemScanner.get_configure_script()
-
-    if configure and os.path.exists('config.log'):
-        previous_prefix = None
-        f = open('config.log')
-        for line in f:
-            if line.startswith('prefix=\''):
-                previous_prefix = line[8:-2]
-                break
-        f.close()
-        if previous_prefix != root:
-            log("Reruning configure due to prefix change (%r -> %r)" % (root, previous_prefix))
-            prefix_matches=False
-    if configure and (not os.path.exists('Makefile') or not prefix_matches):
-        log("Detected configure script, using it")
-        args = ['./configure']
-        args.extend(configargs)
-
-        configure = BuildProcess(args)
-        configure.run_async(phase_build)
-    else:
-        phase_build()
-
-build_status = False
-
-def _phase_build_makefile():
-    log("Detected Makefile, using it")
-    args = makeargs
-    user_specified_jobs = False
-    for arg in args:
-        if arg == '-j':
-            user_specified_jobs = True
-
-    if not user_specified_jobs:
-        log("No jobs specified; overriding to be default parallel")
-        args.extend(default_make_parallel)
-
-    make = BuildProcess(args)
-    make.run_async(phase_install)
-
-def phase_build():
-    if os.path.exists('Makefile'):
-        _phase_build_makefile()
-    else:
-        log("Couldn't find supported build system")
-        log("Known systems:")
-        log("    Makefile: make")
-
-def _phase_install_makefile():
-    log("Doing install")
-    make = BuildProcess(['make', 'install'])
-    make.run_async(phase_complete)
-
-def phase_install():
-    if target_phase != 'install':
-        phase_complete()
-        return
-    if os.path.exists('Makefile'):
-        _phase_install_makefile()
-
-def phase_complete():
-    tail.finish(loop, True)
-
-# Start off the process
-phase_bootstrap()
-loop.run()
+args = sys.argv[1:]
+args.insert(0, 'metabuild-raw')
+raw_proc = subprocess.Popen(args, stdout=logfile_write_fd, stderr=logfile_write_fd)
+ecode = raw_proc.wait()
+tail.finish(ecode == 0)

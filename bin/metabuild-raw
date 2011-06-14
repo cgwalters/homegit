@@ -1,0 +1,195 @@
+#!/usr/bin/python
+
+# metabuild-raw: Generic build system wrapper
+# Copyright 2010, 2011 Colin Walters <walters@verbum.org>
+# Licensed under the new-BSD license (http://www.opensource.org/licenses/bsd-license.php)
+
+# metabuild-raw wraps systems that implement the BUILDAPI.
+
+import os,sys,subprocess,tempfile,re
+from multiprocessing import cpu_count
+import select,time
+
+if 'INROOT_DIR' not in os.environ:
+    print "INROOT_DIR not set; run under inroot"
+    sys.exit(1)
+
+# libdir detection
+root = os.environ['INROOT_DIR']
+if os.path.isdir('/lib64'):
+    libdir=os.path.join(root, 'lib64')
+else:
+    libdir=os.path.join(root, 'lib')
+
+# "Constants" (well, some are derived from the environment)
+subprocess_nice_args = ['nice', 'ionice', '-c', '3', '-t']
+
+# In the future we should test for this better; possibly implement a
+# custom fork handler
+if os.uname()[0] == 'Linux':
+    subprocess_nice_args = ['chrt', '--idle', '0'] + subprocess_nice_args
+
+default_make_parallel = ['-j', '%d' % (cpu_count() * 6, )]
+configargs = ['--prefix=' + root, '--libdir=' + libdir,
+              '--enable-maintainer-mode'] # We default to this because we want to behave like autogen
+makeargs = ['make']
+
+target_phase = 'build'
+
+for arg in sys.argv[1:]:
+    if arg.startswith('--'):
+        configargs.append(arg)
+    elif arg == 'install':
+        target_phase = 'install'
+    else:
+        makeargs.append(arg)
+
+def log(msg):
+    fullmsg = 'metabuild: ' + msg + '\n'
+    sys.stdout.write(fullmsg)
+    sys.stdout.flush()
+
+def fatal(msg):
+    log(msg)
+    sys.exit(1)
+
+def run_sync(args, env=None):
+    log("Running: %r" % (args, ))
+    f = open('/dev/null', 'r')
+    proc = subprocess.Popen(args, stdin=f, stdout=sys.stdout, stderr=sys.stderr,
+                            close_fds=True, env=env)
+    f.close()
+    returncode = proc.wait()
+    log("pid %d exited with code %d" % (proc.pid, returncode))
+
+
+class BuildSystemScanner(object):
+    @classmethod
+    def _find_file(cls, names):
+        for name in names:
+            if os.path.exists(name):
+                return name
+        return None
+
+    @classmethod
+    def get_configure_source_script(cls):
+        return cls._find_file(('./configure.ac', './configure.in'))
+
+    @classmethod
+    def get_configure_script(cls):
+        return cls._find_file(('./configure', ))
+
+    @classmethod
+    def get_bootstrap_script(cls):
+        return cls._find_file(('./autogen.sh', ))
+
+    @classmethod
+    def get_makefile(cls):
+        return cls._find_file(('Makefile', ))
+
+    @classmethod
+    def get_silent_rules(cls):
+        src = cls.get_configure_source_script()
+        if not src:
+            return False
+        f = open(src)
+        for line in f:
+            if line.find('AM_SILENT_RULES') >= 0:
+                f.close()
+                return True
+        f.close()
+        return False
+
+def phase_bootstrap():        
+    have_configure = BuildSystemScanner.get_configure_script() 
+    have_configure_source = BuildSystemScanner.get_configure_source_script()
+    if not (have_configure or have_configure_source):
+        fatal("No configure or bootstrap script detected; unknown buildsystem")
+        return
+
+    need_v1 = BuildSystemScanner.get_silent_rules()
+    if need_v1:
+        log("Detected AM_SILENT_RULES, adding --disable-silent-rules to configure")
+        configargs.append('--disable-silent-rules')
+
+    if have_configure:
+        phase_configure()
+    else:
+        bootstrap = BuildSystemScanner.get_bootstrap_script()
+        if bootstrap:
+            log("Detected bootstrap script: %s, using it" % (bootstrap, ))
+            args = [bootstrap]
+            args.extend(configargs)
+            # Add NOCONFIGURE; GNOME style scripts use this
+            env = dict(os.environ)
+            env['NOCONFIGURE'] = '1'
+            run_sync(args, env=env)
+        else:
+            log("No bootstrap script found; using generic autoreconf")
+            run_sync(['autoreconf', '-f', '-i'])
+        phase_configure()
+
+def phase_configure():
+    prefix_matches=True
+    configure = BuildSystemScanner.get_configure_script()
+
+    if configure and os.path.exists('config.log'):
+        previous_prefix = None
+        f = open('config.log')
+        for line in f:
+            if line.startswith('prefix=\''):
+                previous_prefix = line[8:-2]
+                break
+        f.close()
+        if previous_prefix != root:
+            log("Reruning configure due to prefix change (%r -> %r)" % (root, previous_prefix))
+            prefix_matches=False
+    if configure and (not os.path.exists('Makefile') or not prefix_matches):
+        log("Detected configure script, using it")
+        args = ['./configure']
+        args.extend(configargs)
+        run_sync(configure)
+    phase_build()
+
+build_status = False
+
+def _phase_build_makefile():
+    log("Detected Makefile, using it")
+    args = makeargs
+    user_specified_jobs = False
+    for arg in args:
+        if arg == '-j':
+            user_specified_jobs = True
+
+    if not user_specified_jobs:
+        log("No jobs specified; overriding to be default parallel")
+        args.extend(default_make_parallel)
+
+    run_sync(args)
+    phase_install()
+
+def phase_build():
+    if os.path.exists('Makefile'):
+        _phase_build_makefile()
+    else:
+        log("Couldn't find supported build system")
+        log("Known systems:")
+        log("    Makefile: make")
+
+def _phase_install_makefile():
+    log("Doing install")
+    run_sync(['make', 'install'])
+    phase_complete()
+
+def phase_install():
+    if target_phase != 'install':
+        phase_complete()
+        return
+    if os.path.exists('Makefile'):
+        _phase_install_makefile()
+
+def phase_complete():
+    sys.exit(0)
+
+# Start off the process
+phase_bootstrap()

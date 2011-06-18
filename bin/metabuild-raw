@@ -145,7 +145,7 @@ def phase_configure():
         if previous_prefix != root:
             log("Reruning configure due to prefix change (%r -> %r)" % (root, previous_prefix))
             prefix_matches=False
-    if configure and (not os.path.exists('Makefile') or not prefix_matches):
+    if configure and (not os.path.exists('config.status') or not prefix_matches):
         log("Detected configure script, using it")
         args = ['./configure']
         args.extend(configargs)

@@ -33,6 +33,14 @@ if 'INROOT_DIR' not in os.environ:
     print "INROOT_DIR not set; run under inroot"
     sys.exit(1)
 
+# "Constants" (well, some are derived from the environment)
+subprocess_nice_args = ['nice', 'ionice', '-c', '3', '-t']
+
+# In the future we should test for this better; possibly implement a
+# custom fork handler
+if os.uname()[0] == 'Linux':
+    subprocess_nice_args = ['chrt', '--idle', '0'] + subprocess_nice_args
+
 warning_re = re.compile(r'(: ((warning)|(error)|(fatal error)): )|(make(\[[0-9]+\])?: \*\*\*)')
 output_whitelist_re = re.compile(r'^(make(\[[0-9]+\])?: Entering directory)|(metabuild: )')
 
@@ -243,8 +251,10 @@ def fatal(msg):
     log(msg)
     global_failure_handler()
 
-args = sys.argv[1:]
-args.insert(0, 'metabuild-raw')
+args = list(subprocess_nice_args)
+args.append('metabuild-raw')
+args.extend(sys.argv[1:])
+print "Running: %r" % (args, )
 raw_proc = subprocess.Popen(args, stdout=logfile_write_fd, stderr=logfile_write_fd)
 ecode = raw_proc.wait()
 tail.finish(ecode == 0)

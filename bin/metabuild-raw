@@ -21,12 +21,14 @@ if os.path.isdir('/lib64'):
 else:
     libdir=os.path.join(root, 'lib')
 
-default_make_parallel = ['-j', '%d' % (cpu_count() * 6, )]
+default_buildapi_jobs = ['-j', '%d' % (cpu_count() * 2, )]
 configargs = ['--prefix=' + root, '--libdir=' + libdir,
               '--enable-maintainer-mode'] # We default to this because we want to behave like autogen
 makeargs = ['make']
 
 target_phase = 'build'
+
+top_srcdir=os.getcwd()
 
 for arg in sys.argv[1:]:
     if arg.startswith('--'):
@@ -93,6 +95,24 @@ class BuildSystemScanner(object):
         f.close()
         return False
 
+def _search_file(filename, pattern):
+    f = open(filename)
+    for line in f:
+        if line.startswith(pattern):
+            f.close()
+            return line
+    f.close()
+    return None
+
+def _find_buildapi_makevariable(name):
+    var = '.%s:' % (name, )
+    line = None
+    if os.path.exists('Makefile.in'):
+        line = _search_file('Makefile.in', var)
+    if not line and os.path.exists('Makefile'):
+        line = _search_file('Makefile', var)
+    return line is not None
+
 def phase_bootstrap():        
     have_configure = BuildSystemScanner.get_configure_script() 
     have_configure_source = BuildSystemScanner.get_configure_source_script()
@@ -123,25 +143,24 @@ def phase_bootstrap():
         phase_configure()
 
 def phase_configure():
-    prefix_matches=True
-    configure = BuildSystemScanner.get_configure_script()
+    supports_builddir = _find_buildapi_makevariable('buildapi-allow-builddir')
+    if supports_builddir:
+        log("Found .buildapi-allow-builddir, using build directory _build")
+        if not os.path.isdir('_build'):
+            os.mkdir('_build')
+        os.chdir('_build')
+        configdir = '../'
+    else:
+        log("Didn't find .buildapi-allow-builddir")
+        configdir = './'
 
-    if configure and os.path.exists('config.log'):
-        previous_prefix = None
-        f = open('config.log')
-        for line in f:
-            if line.startswith('prefix=\''):
-                previous_prefix = line[8:-2]
-                break
-        f.close()
-        if previous_prefix != root:
-            log("Reruning configure due to prefix change (%r -> %r)" % (root, previous_prefix))
-            prefix_matches=False
-    if configure and (not os.path.exists('config.status') or not prefix_matches):
-        log("Detected configure script, using it")
-        args = ['./configure']
+    configstatus = os.path.join(configdir, 'config.status')
+    if not os.path.exists(configstatus):
+        args = [os.path.join(configdir, 'configure')]
         args.extend(configargs)
         run_sync(args)
+    else:
+        log("Found %s, skipping configure" % (configstatus, ))
     phase_build()
 
 build_status = False
@@ -155,19 +174,19 @@ def _phase_build_makefile():
             user_specified_jobs = True
 
     if not user_specified_jobs:
-        log("No jobs specified; overriding to be default parallel")
-        args.extend(default_make_parallel)
+        notparallel = _find_buildapi_makevariable('NOTPARALLEL')
+        if not notparallel:
+            log("Didn't find NOTPARALLEL, using parallel make by default")
+            args.extend(default_buildapi_jobs)
 
     run_sync(args)
     phase_install()
 
 def phase_build():
-    if os.path.exists('Makefile'):
-        _phase_build_makefile()
-    else:
-        log("Couldn't find supported build system")
-        log("Known systems:")
-        log("    Makefile: make")
+    if not os.path.exists('Makefile'):
+        log("No Makefile found")
+        sys.exit(1)
+    _phase_build_makefile()
 
 def _phase_install_makefile():
     log("Doing install")

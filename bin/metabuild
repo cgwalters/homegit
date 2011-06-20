@@ -60,7 +60,7 @@ class Mainloop(object):
         self._running = True
         self.poll = select.poll()
         self._timeouts = []
-        self._pid_watches = []
+        self._pid_watches = {}
         self._fd_callbacks = {}
 
     def watch_fd(self, fd, callback):
@@ -94,7 +94,7 @@ class Mainloop(object):
         for pid in self._pid_watches:
             (opid, status) = os.waitpid(pid, os.WNOHANG)
             if opid != 0:
-                self._pid_watches[pid]()
+                self._pid_watches[pid](opid, status)
                 del self._pid_watches[pid]
         newtime = time.time() * 1000
         diff = int(newtime - origtime)
@@ -203,7 +203,7 @@ class OutputFilter(object):
                 else:
                     self._filtered_line_count += 1
 
-    def _on_changed(self, mon, gfile, other, event):
+    def _on_changed(self):
         self._do_read()
 
     def start(self):
@@ -256,5 +256,7 @@ args.append('metabuild-raw')
 args.extend(sys.argv[1:])
 print "Running: %r" % (args, )
 raw_proc = subprocess.Popen(args, stdout=logfile_write_fd, stderr=logfile_write_fd)
-ecode = raw_proc.wait()
-tail.finish(ecode == 0)
+def _on_raw_proc_exit(pid, estatus):
+    tail.finish(estatus == 0)
+_mainloop.watch_pid(raw_proc.pid, _on_raw_proc_exit)
+_mainloop.run()

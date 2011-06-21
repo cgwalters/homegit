@@ -160,7 +160,7 @@ def phase_configure():
         log("Didn't find .buildapi-allow-builddir")
         configdir = './'
 
-    configstatus = os.path.join(configdir, 'config.status')
+    configstatus = 'config.status'
     if not os.path.exists(configstatus):
         args = [os.path.join(configdir, 'configure')]
         args.extend(configargs)

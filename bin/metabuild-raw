@@ -10,12 +10,18 @@ import os,sys,subprocess,tempfile,re
 from multiprocessing import cpu_count
 import select,time
 
-if 'INROOT_DIR' not in os.environ:
-    print "INROOT_DIR not set; run under inroot"
+root = None
+
+for var in ['JHBUILD_PREFIX', 'INROOT_DIR', 'MONO_GAC_PREFIX']:
+    if var in os.environ:
+        root = os.environ[var]
+        break
+
+if root is None:
+    print "One of JHBUILD_PREFIX or INROOT_DIR should be set"
     sys.exit(1)
 
 # libdir detection
-root = os.environ['INROOT_DIR']
 if os.path.isdir('/lib64'):
     libdir=os.path.join(root, 'lib64')
 else:

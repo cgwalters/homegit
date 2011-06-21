@@ -29,10 +29,6 @@
 import os,sys,subprocess,tempfile,re
 import select,time,stat,fcntl
 
-if 'INROOT_DIR' not in os.environ:
-    print "INROOT_DIR not set; run under inroot"
-    sys.exit(1)
-
 # "Constants" (well, some are derived from the environment)
 subprocess_nice_args = ['nice', 'ionice', '-c', '3', '-t']
 

@@ -29,13 +29,25 @@
 import os,sys,subprocess,tempfile,re
 import select,time,stat,fcntl
 
-# "Constants" (well, some are derived from the environment)
-subprocess_nice_args = ['nice', 'ionice', '-c', '3', '-t']
+subprocess_nice_args = []
 
 # In the future we should test for this better; possibly implement a
 # custom fork handler
-if os.uname()[0] == 'Linux':
-    subprocess_nice_args = ['chrt', '--idle', '0'] + subprocess_nice_args
+try:
+    chrt_args = ['chrt', '--idle', '0']
+    proc = subprocess.Popen(chrt_args + ['true'])
+    if proc.wait() == 0:
+        subprocess_nice_args.extend(chrt_args)
+except OSError, e:
+    pass
+
+try:
+    ionice_args = ['ionice', '-c', '3', '-t']
+    proc = subprocess.Popen(ionice_args + ['true'])
+    if proc.wait() == 0:
+        subprocess_nice_args.extend(ionice_args)
+except OSError, e:
+    pass
 
 warning_re = re.compile(r'(: ((warning)|(error)|(fatal error)): )|(make(\[[0-9]+\])?: \*\*\*)')
 output_whitelist_re = re.compile(r'^(make(\[[0-9]+\])?: Entering directory)|(metabuild: )')

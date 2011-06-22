@@ -15,6 +15,18 @@ def fatal(msg):
     sys.stderr.write(msg + "\n")
     sys.exit(1)
 
+if not os.path.isfile('config.log'):
+    fatal("Couldn't find config.log; did you run configure?")
+
+gitdir = None
+for d in ['.', '..']:
+    path = os.path.join(d, '.git')
+    if os.path.isdir(path):
+        gitdir = d
+        break
+if gitdir is None:
+    fatal("Couldn't find .git")
+
 def _extract_config_log_variable(name):
     f = open('config.log')
     keystart = name + '=\''
@@ -24,18 +36,16 @@ def _extract_config_log_variable(name):
     f.close()
     fatal("Failed to find '%s' in config.status" % (name, ))
 
-if not os.path.isfile('config.log'):
-    fatal("Couldn't find config.log; did you run configure?")
 package = _extract_config_log_variable('PACKAGE_TARNAME')
 version = _extract_config_log_variable('VERSION')
 
-commitid = subprocess.Popen(['git', 'rev-parse', 'HEAD'], stdout=subprocess.PIPE).communicate()[0]
+commitid = subprocess.Popen(['git', 'rev-parse', 'HEAD'], stdout=subprocess.PIPE, cwd=gitdir).communicate()[0]
 commitid = commitid[0:8]
 prefix = '%s-%s.%s' % (package, version, commitid)
 target_filename = '%s.tar.bz2' % (prefix, )
 gitproc = subprocess.Popen(['git', 'archive', '--format=tar',
                             '--prefix=%s/' % (prefix, ), 'HEAD'], stdout=subprocess.PIPE,
-                           stderr=sys.stderr)
+                           stderr=sys.stderr, cwd=gitdir)
 tarfile_f = open(target_filename, 'w')
 bzproc = subprocess.Popen(['bzip2', '-c'], stdout=tarfile_f, stdin=gitproc.stdout, stderr=sys.stderr)
 tarfile_f.close()

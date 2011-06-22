@@ -154,9 +154,11 @@ def phase_configure():
         log("Found .buildapi-no-builddir, suppressing build directory")
         configdir = './'
     else:
-        if not os.path.isdir('_build'):
-            os.mkdir('_build')
-        os.chdir('_build')
+        builddir = '_build'
+        log("Using build directory %r" % (builddir, ))
+        if not os.path.isdir(builddir):
+            os.mkdir(builddir)
+        os.chdir(builddir)
         configdir = '../'
 
     configstatus = 'config.status'

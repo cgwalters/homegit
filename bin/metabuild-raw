@@ -149,16 +149,15 @@ def phase_bootstrap():
         phase_configure()
 
 def phase_configure():
-    supports_builddir = _find_buildapi_makevariable('buildapi-allow-builddir')
-    if supports_builddir:
-        log("Found .buildapi-allow-builddir, using build directory _build")
+    doesnot_support_builddir = _find_buildapi_makevariable('buildapi-no-builddir')
+    if doesnot_support_builddir:
+        log("Found .buildapi-no-builddir, suppressing build directory")
+        configdir = './'
+    else:
         if not os.path.isdir('_build'):
             os.mkdir('_build')
         os.chdir('_build')
         configdir = '../'
-    else:
-        log("Didn't find .buildapi-allow-builddir")
-        configdir = './'
 
     configstatus = 'config.status'
     if not os.path.exists(configstatus):

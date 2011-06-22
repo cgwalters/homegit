@@ -21,14 +21,19 @@ if root is None:
     print "One of JHBUILD_PREFIX or INROOT_DIR should be set"
     sys.exit(1)
 
+if root == '/':
+    prefix = '/usr'
+else:
+    prefix = root
+
 # libdir detection
 if os.path.isdir('/lib64'):
-    libdir=os.path.join(root, 'lib64')
+    libdir=os.path.join(prefix, 'lib64')
 else:
-    libdir=os.path.join(root, 'lib')
+    libdir=os.path.join(prefix, 'lib')
 
 default_buildapi_jobs = ['-j', '%d' % (cpu_count() * 2, )]
-configargs = ['--prefix=' + root, '--libdir=' + libdir,
+configargs = ['--prefix=' + prefix, '--libdir=' + libdir,
               '--enable-maintainer-mode'] # We default to this because we want to behave like autogen
 makeargs = ['make']
 
@@ -209,6 +214,9 @@ def phase_install():
 
 def phase_complete():
     sys.exit(0)
+
+log("invocation arguments: %r" % (sys.argv, ))
+log("target phase: %r" % (target_phase, ))
 
 # Start off the process
 phase_bootstrap()

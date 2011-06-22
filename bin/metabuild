@@ -262,8 +262,8 @@ def fatal(msg):
 args = list(subprocess_nice_args)
 args.append('metabuild-raw')
 args.extend(sys.argv[1:])
-print "Running: %r" % (args, )
-raw_proc = subprocess.Popen(args, stdout=logfile_write_fd, stderr=logfile_write_fd)
+devnull=open('/dev/null')
+raw_proc = subprocess.Popen(args, stdin=devnull, stdout=logfile_write_fd, stderr=logfile_write_fd)
 def _on_raw_proc_exit(pid, estatus):
     tail.finish(estatus == 0)
 _mainloop.watch_pid(raw_proc.pid, _on_raw_proc_exit)

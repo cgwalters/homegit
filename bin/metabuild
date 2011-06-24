@@ -64,12 +64,21 @@ def _bold(text):
         return text
 
 class Mainloop(object):
+    DEFAULT = None
     def __init__(self):
         self._running = True
         self.poll = select.poll()
         self._timeouts = []
         self._pid_watches = {}
         self._fd_callbacks = {}
+
+    @classmethod
+    def get(cls, context):
+        if context is None:
+            if cls.DEFAULT is None:
+                cls.DEFAULT = cls()
+            return cls.DEFAULT
+        raise NotImplementedError("Unknown context %r" % (context, ))
 
     def watch_fd(self, fd, callback):
         self.poll.register(fd)
@@ -118,14 +127,13 @@ class Mainloop(object):
         while self._running:
             self.run_once()
 
-_mainloop = Mainloop()
-
 class FileMonitor(object):
     def __init__(self):
         self._paths = {}
         self._path_modtimes = {}
         self._timeout = 1000
         self._timeout_installed = False
+        self._loop = Mainloop.get(None)
 
     def _stat(self, path):
         try:
@@ -141,7 +149,7 @@ class FileMonitor(object):
         self._paths[path].append(callback)
         if not self._timeout_installed:
             self._timeout_installed = True
-            _mainloop.timeout_add(self._timeout, self._check_files)
+            self._loop.timeout_add(self._timeout, self._check_files)
 
     def _check_files(self):
         for (path,callbacks) in self._paths.iteritems():
@@ -255,5 +263,7 @@ if __name__ == '__main__':
     raw_proc = subprocess.Popen(args, stdin=devnull, stdout=logfile_write_fd, stderr=logfile_write_fd)
     def _on_raw_proc_exit(pid, estatus):
         tail.finish(estatus == 0)
-    _mainloop.watch_pid(raw_proc.pid, _on_raw_proc_exit)
-    _mainloop.run()
+
+    loop = Mainloop.get(None)
+    loop.watch_pid(raw_proc.pid, _on_raw_proc_exit)
+    loop.run()

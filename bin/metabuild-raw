@@ -90,10 +90,6 @@ class BuildSystemScanner(object):
         return cls._find_file(('./autogen.sh', ))
 
     @classmethod
-    def get_makefile(cls):
-        return cls._find_file(('Makefile', ))
-
-    @classmethod
     def get_silent_rules(cls):
         src = cls.get_configure_source_script()
         if not src:
@@ -177,8 +173,10 @@ def phase_configure():
 
 build_status = False
 
-def _phase_build_makefile():
-    log("Detected Makefile, using it")
+def phase_build():
+    if not os.path.exists('Makefile'):
+        log("No Makefile found")
+        sys.exit(1)
     args = makeargs
     user_specified_jobs = False
     for arg in args:
@@ -194,23 +192,13 @@ def _phase_build_makefile():
     run_sync(args)
     phase_install()
 
-def phase_build():
-    if not os.path.exists('Makefile'):
-        log("No Makefile found")
-        sys.exit(1)
-    _phase_build_makefile()
-
-def _phase_install_makefile():
-    log("Doing install")
-    run_sync(['make', 'install'])
-    phase_complete()
-
 def phase_install():
     if target_phase != 'install':
         phase_complete()
         return
-    if os.path.exists('Makefile'):
-        _phase_install_makefile()
+    log("Doing install")
+    run_sync(['make', 'install'])
+    phase_complete()
 
 def phase_complete():
     sys.exit(0)

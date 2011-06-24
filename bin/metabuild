@@ -227,44 +227,33 @@ class OutputFilter(object):
         self.output.write("metabuild: full log path: %s\n" % (logfile_path, ))
         sys.exit(0 if successful else 1)
 
-user_tmpdir = os.environ.get('XDG_RUNTIME_DIR')
-if user_tmpdir is None:
-    user_tmpdir = os.path.join(os.environ.get('TMPDIR', '/tmp'), 'metabuild-%s' % (os.getuid(), ))
-else:
-    user_tmpdir = os.path.join(user_tmpdir, 'metabuild') 
-if not os.path.isdir(user_tmpdir):
-    os.makedirs(user_tmpdir)
-logfile_path = os.path.join(user_tmpdir, '%s.log' % (os.path.basename(os.getcwd()), ))
-try:
-    os.unlink(logfile_path)
-except OSError, e:
-    pass
-logfile_write_fd = os.open(logfile_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL)
-logfile_f = os.fdopen(logfile_write_fd, "w")
-sys.stdout.write('metabuild: logging to %r\n' % (logfile_path, ))
-sys.stdout.flush()
+if __name__ == '__main__':
+    user_tmpdir = os.environ.get('XDG_RUNTIME_DIR')
+    if user_tmpdir is None:
+        user_tmpdir = os.path.join(os.environ.get('TMPDIR', '/tmp'), 'metabuild-%s' % (os.getuid(), ))
+    else:
+        user_tmpdir = os.path.join(user_tmpdir, 'metabuild') 
+    if not os.path.isdir(user_tmpdir):
+        os.makedirs(user_tmpdir)
+    logfile_path = os.path.join(user_tmpdir, '%s.log' % (os.path.basename(os.getcwd()), ))
+    try:
+        os.unlink(logfile_path)
+    except OSError, e:
+        pass
+    logfile_write_fd = os.open(logfile_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL)
+    logfile_f = os.fdopen(logfile_write_fd, "w")
+    sys.stdout.write('metabuild: logging to %r\n' % (logfile_path, ))
+    sys.stdout.flush()
 
-tail = OutputFilter(logfile_path, sys.stdout)
-tail.start()
+    tail = OutputFilter(logfile_path, sys.stdout)
+    tail.start()
 
-def log(msg):
-    fullmsg = 'metabuild: ' + msg + '\n'
-    logfile_f.write(fullmsg)
-    logfile_f.flush()
-
-def global_failure_handler():
-    tail.finish(False)
-
-def fatal(msg):
-    log(msg)
-    global_failure_handler()
-
-args = list(subprocess_nice_args)
-args.append('metabuild-raw')
-args.extend(sys.argv[1:])
-devnull=open('/dev/null')
-raw_proc = subprocess.Popen(args, stdin=devnull, stdout=logfile_write_fd, stderr=logfile_write_fd)
-def _on_raw_proc_exit(pid, estatus):
-    tail.finish(estatus == 0)
-_mainloop.watch_pid(raw_proc.pid, _on_raw_proc_exit)
-_mainloop.run()
+    args = list(subprocess_nice_args)
+    args.append('metabuild-raw')
+    args.extend(sys.argv[1:])
+    devnull=open('/dev/null')
+    raw_proc = subprocess.Popen(args, stdin=devnull, stdout=logfile_write_fd, stderr=logfile_write_fd)
+    def _on_raw_proc_exit(pid, estatus):
+        tail.finish(estatus == 0)
+    _mainloop.watch_pid(raw_proc.pid, _on_raw_proc_exit)
+    _mainloop.run()

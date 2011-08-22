@@ -27,6 +27,9 @@
 (tool-bar-mode nil)
 (server-start)
 
+(require 'recentf)
+(recentf-mode 1)
+
 ;; Really custom stuff
 (setq user-mail-address "walters@verbum.org")
 (setq viper-mode t)

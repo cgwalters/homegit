@@ -1,4 +1,4 @@
-;;; Minimal Unbreak Emacs
+;;; Minimal Unbreak Emacs   -*- mode: emacs-lisp -*-
 ; Waste of display space if you can't click on it
 (menu-bar-mode nil)
 ; This is off for efficiency reasons I guess.  But really
@@ -34,6 +34,8 @@
 (setq user-mail-address "walters@verbum.org")
 (setq viper-mode t)
 (require 'viper)
+
+(define-key viper-vi-global-user-map "m" 'push-mark-command)
 
 (custom-set-variables
   ;; custom-set-variables was added by Custom.

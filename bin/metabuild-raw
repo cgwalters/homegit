@@ -139,14 +139,12 @@ def phase_bootstrap():
         if bootstrap:
             log("Detected bootstrap script: %s, using it" % (bootstrap, ))
             args = [bootstrap]
-            args.extend(configargs)
             # Add NOCONFIGURE; GNOME style scripts use this
             env = dict(os.environ)
             env['NOCONFIGURE'] = '1'
             run_sync(args, env=env)
         else:
-            log("No bootstrap script found; using generic autoreconf")
-            run_sync(['autoreconf', '-f', '-i'])
+            fatal("No configure or bootstrap script detected")
         phase_configure()
 
 def phase_configure():

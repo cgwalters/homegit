@@ -15,3 +15,5 @@
 	history-view-vpane-position = 161
 	file-view-vpane-position = 288
 	file-view-hpane-position = 312
+[url "git://git.debian.org/d-i/"]
+	insteadOf = git+ssh://git.debian.org/git/d-i/

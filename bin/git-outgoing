@@ -1,3 +1,3 @@
 #!/bin/sh
 # http://weblog.latte.ca/blake/employment/mozilla/thunderbird/gitOutgoing.html
-git push --dry-run $1 2>&1 | awk '/^ / {print $1}' | xargs git log
+git push --dry-run origin master 2>&1 | awk '/^ / {print $1}' | xargs git log

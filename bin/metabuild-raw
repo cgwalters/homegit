@@ -33,7 +33,9 @@ else:
     libdir=os.path.join(prefix, 'lib')
 
 default_buildapi_jobs = ['-j', '%d' % (cpu_count() * 2, )]
-configargs = ['--prefix=' + prefix, '--libdir=' + libdir,
+configargs = ['--prefix=' + prefix,
+              '--bindir=' + prefix + '/bin',
+              '--libdir=' + libdir,
               '--enable-maintainer-mode'] # We default to this because we want to behave like autogen
 makeargs = ['make']
 

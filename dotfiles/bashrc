@@ -11,6 +11,8 @@ if [ -f /etc/bash_completion ]; then
   . /etc/bash_completion
 fi
 
+export PATH="$HOME/.local/bin:$PATH"
+
 HISTSIZE=5000
 export HISTSIZE
 shopt -s histappend

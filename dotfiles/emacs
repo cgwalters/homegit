@@ -37,6 +37,8 @@
 
 (define-key viper-vi-global-user-map "m" 'push-mark-command)
 
+(add-to-list 'load-path "~/.local/share/emacs/")
+
 (custom-set-variables
   ;; custom-set-variables was added by Custom.
   ;; If you edit it by hand, you could mess it up, so be careful.

@@ -7,6 +7,11 @@ fi
 
 # User specific aliases and functions
 
+alias g-d='git diff'
+alias g-am='git commit -a --amend'
+alias g-c='git commit -a'
+alias jhm='jhbuild make'
+
 if [ -f /etc/bash_completion ]; then
   . /etc/bash_completion
 fi

@@ -7,14 +7,7 @@ for x in $@; do
     if ! test -d "$x/.git"; then
 	continue
     fi
-    tempfile=$(mktemp --suffix=git-multigrep.txt)
-    (cd $x; git grep -e "$pattern" > $tempfile)
-    if test -s "$tempfile"; then
-	(while read line; do
-	    echo $x/$line;
-	    done) < "$tempfile"
-    fi
-    rm -f "$tempfile"
+    (cd $x; git grep -e "$pattern" | sed -e "s,^,${x}/,")
 done
     
 	

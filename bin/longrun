@@ -1,0 +1,16 @@
+#!/bin/sh
+
+# longrun: Start a long-running command like a build at idle priority, notify when done
+# Copyright 2013 Colin Walters <walters@verbum.org>
+# Licensed under the new-BSD license (http://www.opensource.org/licenses/bsd-license.php)
+
+set -e
+
+cmd=$(basename $1)
+if chrt --idle 0 "$@"; then
+    notify-send "${cmd} complete"
+else
+    notify-send "${cmd} failed"
+    exit 1
+fi
+    

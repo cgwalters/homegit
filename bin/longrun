@@ -6,11 +6,22 @@
 
 set -e
 
-cmd=$(basename $1)
-if chrt --idle 0 "$@"; then
-    notify-send "${cmd} complete"
+if test -n "$1"; then
+    cmd=$(basename $1)
+    if chrt --idle 0 "$@"; then
+	notify-send "${cmd} complete"
+    else
+	notify-send "${cmd} failed"
+	exit 1
+    fi
 else
-    notify-send "${cmd} failed"
-    exit 1
+    ecode=$?
+    if test "${ecode}" -eq 0; then
+	notify-send "complete"
+    else
+	notify-send "failed"
+	exit ${ecode}
+    fi
 fi
+	
     

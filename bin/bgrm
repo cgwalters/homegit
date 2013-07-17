@@ -1,0 +1,19 @@
+#!/bin/sh
+
+# bgrm: Like rm, but for directories, rename to a temporary name, and
+# perform operation in the background.
+# 
+# Copyright 2013 Colin Walters <walters@verbum.org>
+# Licensed under the new-BSD license (http://www.opensource.org/licenses/bsd-license.php)
+
+set -e
+
+for x in $@; do
+    if test -d $x; then
+	tmpd=$(mktemp -d bgrm.XXXXXX)
+	mv $x ${tmpd}
+	rm ${tmpd} -rf &
+    else
+	rm ${x}
+    fi
+done

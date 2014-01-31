@@ -64,6 +64,13 @@ _format_inroot_dir ()
   fi
 }
 
+_format_screen ()
+{
+  if test -n "$WINDOW"; then
+    echo -n " [scr:$WINDOW]";
+  fi
+}
+
 _format_uid ()
 {
   if test $(id -u) = '0'; then
@@ -71,7 +78,7 @@ _format_uid ()
   fi
 }
 
-PS1_PREFIX='$(_format_wd)$(_format_uid)$(_format_inroot_dir)'
+PS1_PREFIX='$(_format_wd)$(_format_screen)$(_format_uid)$(_format_inroot_dir)'
 if test -n "$BASH_COMPLETION" && test -f /etc/bash_completion.d/git; then
   PS1_PREFIX="$PS1_PREFIX"'$(__git_ps1 " [git %s]")'
 fi

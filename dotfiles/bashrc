@@ -79,7 +79,16 @@ _format_uid ()
 }
 
 PS1_PREFIX='$(_format_wd)$(_format_screen)$(_format_uid)$(_format_inroot_dir)'
-if test -n "$BASH_COMPLETION" && test -f /etc/bash_completion.d/git; then
+
+if test -f /usr/share/git-core/contrib/completion/git-prompt.sh; then
+  source /usr/share/git-core/contrib/completion/git-prompt.sh
+  have_git_ps1=true
+else if test -n "$BASH_COMPLETION" && test -f /etc/bash_completion.d/git; then
+  have_git_ps1=true
+fi
+fi
+
+if $have_git_ps1; then
   PS1_PREFIX="$PS1_PREFIX"'$(__git_ps1 " [git %s]")'
 fi
 

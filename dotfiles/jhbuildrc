@@ -1,7 +1,7 @@
 # -*- mode: python -*-
 # -*- coding: utf-8 -*-
 repos['git.gnome.org'] = 'ssh://walters@git.gnome.org/git/'
-moduleset = 'gnome-world-3.10'
+moduleset = 'gnome-world-3.14'
 checkoutroot = '~/src'
 prefix = '~/src/build/jhbuild'
 ignore_suggests = True

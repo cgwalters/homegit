@@ -9,9 +9,6 @@ install-bin:
 	  bn=$$(basename $$f); \
 	  ln -sf $$(pwd)/bin/$$bn ~/bin; \
 	done
-	ln -sf  $$(pwd)/gnome-root-terminal/gnome-root-terminal ~/bin/
-	mkdir -p ~/.local/share/applications 2>/dev/null || true
-	ln -sf $$(pwd)/gnome-root-terminal/gnome-root-terminal.desktop ~/.local/share/applications 
 
 install-dotfiles:
 	@for f in dotfiles/*; do \

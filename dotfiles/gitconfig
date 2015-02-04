@@ -21,3 +21,5 @@
 	insteadOf = git+ssh://git.debian.org/git/d-i/
 [format]
 	pretty = fuller
+[push]
+	default = simple

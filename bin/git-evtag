@@ -1,0 +1,94 @@
+#!/usr/bin/env python
+
+# Like "git tag", but also embed data extended verification data,
+# currently the SHA256(git archive), protected by the GPG signature.
+# This helps obviate the SHA1 weakness concerns of git, and also can
+# be used as an additional stronger verification against repository
+# corruption.
+#
+# Usage:
+# Just like "git tag", except additional data will be appended or verified
+#
+# Copyright 2015 Colin Walters <walters@verbum.org>
+# Licensed under the new-BSD license (http://www.opensource.org/licenses/bsd-license.php)
+
+import os
+import sys
+import subprocess
+import tempfile
+import hashlib
+import argparse
+import StringIO
+
+EVTAG_SHA256_ARCHIVE_TAR = "ExtendedVerify-SHA256-archive-tar: "
+
+def _archive_sha256_of_rev(rev):
+    s = hashlib.sha256()
+    archiveproc = subprocess.Popen(['git', 'archive', '--format=tar', rev],
+                                   stdout=subprocess.PIPE)
+    b = archiveproc.stdout.read(8192)
+    while b != '':
+        s.update(b) 
+        b = archiveproc.stdout.read(8192)
+    archiveproc.wait()
+    if archiveproc.returncode != 0:
+        fatal("fatal: git archive exited with code {0}".format(archiveproc.returncode))
+    return s.hexdigest()
+
+def fatal(msg):
+    sys.stderr.write(msg)
+    sys.stderr.write('\n')
+    sys.exit(1)
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-v', '--verify', help="Verify", action='store_true')
+    parser.add_argument('-m', '--message', help="Message")
+    parser.add_argument('-F', '--file', help="Message from file")
+    parser.add_argument('tagname', help="Tag name")
+    parser.add_argument('commit', help="Commit", nargs='?')
+    args = parser.parse_args()
+
+    if args.tagname is None:
+        fatal("Missing required argument tagname")
+
+    if args.verify:
+        actual = _archive_sha256_of_rev(args.tagname)
+        subprocess.check_call(['git', 'verify-tag', args.tagname])
+        taginfo = subprocess.check_output(['git', 'show', '--quiet', args.tagname])
+        expected = None
+        for line in StringIO.StringIO(taginfo):
+            if line.startswith(EVTAG_SHA256_ARCHIVE_TAR):
+                expected = line[len(EVTAG_SHA256_ARCHIVE_TAR):].strip()
+                break
+        if expected is None:
+            fatal("fatal: failed to find {0} in message for tag {1}\n".format(
+                EVTAG_SHA256_ARCHIVE_TAR, args.tagname))
+        if expected != actual:
+            fatal("fatal: Tag specifies {0}{1}, actual is {2}\n".format(
+                EVTAG_SHA256_ARCHIVE_TAR, expected, actual))
+        else:
+            sys.stdout.write("Verified: {0} {1}{2}\n".format(args.tagname, EVTAG_SHA256_ARCHIVE_TAR, actual))
+    else:
+        if args.file:
+            message = open(args.file).read()
+        elif args.message:
+            message = args.message
+        else:
+            fatal("Must specify one of --message or --file")
+            
+        rev = args.commit or 'HEAD'
+        digest = _archive_sha256_of_rev(rev)
+        (tmpfd,tmppath) = tempfile.mkstemp('tmp', 'git-evtag')
+        with os.fdopen(tmpfd, 'w') as f:
+            message = '{2}\n\n{0}{1}\n'.format(EVTAG_SHA256_ARCHIVE_TAR,
+                                               digest,
+                                               args.message)
+            f.write(message)
+        try:
+            subprocess.check_call(['git', 'tag', '-s', '-F', tmppath, args.tagname, rev])
+        finally:
+            os.unlink(tmppath)
+                
+if __name__ == '__main__':
+    main()

@@ -10,6 +10,7 @@ fi
 alias l='longrun'
 alias g-d='git diff'
 alias g-am='git commit -a --amend'
+alias g-amf='git commit -a --amend --no-edit'
 alias g-c='git commit -a'
 alias jhm='jhbuild make'
 

@@ -24,12 +24,19 @@ HISTSIZE=5000
 export HISTSIZE
 shopt -s histappend
 
-UNFUCK_BASH_HISTORY="history -a"
+LAST_HISTORY_WRITE=$SECONDS
+function save_history_prompt_command {
+    if [ $(($SECONDS - $LAST_HISTORY_WRITE)) -gt 60 ]; then
+        history -a && history -c && history -r
+        LAST_HISTORY_WRITE=$SECONDS
+    fi
+}
+
 if test -n "${PROMPT_COMMAND}"; then
-   PROMPT_COMMAND="${PROMPT_COMMAND};${UNFUCK_BASH_HISTORY}"
+  PROMPT_COMMAND="$PROMPT_COMMAND; save_history_prompt_command"
 else
-   PROMPT_COMMAND="$UNFUCK_BASH_HISTORY"
-fi   
+  PROMPT_COMMAND="save_history_prompt_command"
+fi
 
 EDITOR="emacsclient"
 export EDITOR

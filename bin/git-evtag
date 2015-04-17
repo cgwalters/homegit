@@ -21,6 +21,7 @@ import argparse
 import StringIO
 
 EVTAG_SHA256_ARCHIVE_TAR = "ExtendedVerify-SHA256-archive-tar: "
+EVTAG_GITVERSION = "ExtendedVerify-git-version: "
 
 def _archive_sha256_of_rev(rev):
     s = hashlib.sha256()
@@ -76,15 +77,21 @@ def main():
             message = args.message
         else:
             fatal("Must specify one of --message or --file")
+
+        gitversion = subprocess.check_output(['git', '--version'])
             
         rev = args.commit or 'HEAD'
         digest = _archive_sha256_of_rev(rev)
         (tmpfd,tmppath) = tempfile.mkstemp('tmp', 'git-evtag')
         with os.fdopen(tmpfd, 'w') as f:
-            message = '{2}\n\n{0}{1}\n'.format(EVTAG_SHA256_ARCHIVE_TAR,
-                                               digest,
-                                               args.message)
-            f.write(message)
+            f.write(args.message)
+            f.write('\n\n')
+            f.write(EVTAG_SHA256_ARCHIVE_TAR)
+            f.write(digest)
+            f.write('\n')
+            f.write(EVTAG_GITVERSION)
+            f.write(gitversion)
+            f.write('\n\n')
         try:
             subprocess.check_call(['git', 'tag', '-s', '-F', tmppath, args.tagname, rev])
         finally:

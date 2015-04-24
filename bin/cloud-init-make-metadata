@@ -1,0 +1,21 @@
+#!/usr/bin/env python
+
+# http://www.projectatomic.io/blog/2014/10/getting-started-with-cloud-init/
+
+import os
+import sys
+import subprocess
+import tempfile
+import shutil
+
+[hostname, userdata, output] = sys.argv[1:]
+tmpd = tempfile.mkdtemp()
+tmpd_md = tmpd + '/meta-data'
+with open(tmpd_md, 'w') as f:
+    f.write('instance-id: {0}\nlocal-hostname: {0}\n'.format(hostname))
+shutil.copy(userdata, tmpd + '/user-data')
+absout = os.path.abspath(output)
+subprocess.check_call(['genisoimage', '-output', absout, '-volid', 'cidata', '-joliet', '-rock', 'user-data', 'meta-data'],
+                      cwd=tmpd)
+print "Generated: {0}".format(absout)
+

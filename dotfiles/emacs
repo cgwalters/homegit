@@ -10,6 +10,8 @@
 ; Assuming you didn't use Emacs from before when the concept of
 ; selecting a single region of text interactively was not supported.
 (transient-mark-mode t)
+; I can't think of anyone who would actually want this
+(setq visible-bell t)
 ; This one is actually fixed in Emacs 22; http://www.emacswiki.org/cgi-bin/wiki/CopyAndPaste
 (setq x-select-enable-clipboard t)
 ; The default for "uniquifying" buffer names sucks

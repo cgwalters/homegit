@@ -41,6 +41,12 @@
 
 (add-to-list 'load-path "~/.local/share/emacs/")
 
+(let ((path "~/src/github/rust-lang/rust-mode"))
+  (when (file-exists-p path)
+    (add-to-list 'load-path path)
+    (autoload 'rust-mode "rust-mode" nil t)
+    (add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-mode))))
+
 (custom-set-variables
   ;; custom-set-variables was added by Custom.
   ;; If you edit it by hand, you could mess it up, so be careful.

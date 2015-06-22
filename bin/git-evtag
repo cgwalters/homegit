@@ -76,7 +76,13 @@ def main():
         elif args.message:
             message = args.message
         else:
-            fatal("Must specify one of --message or --file")
+            (fd,temppath) = tempfile.mkstemp(prefix='git-evtag', suffix='.md')
+            os.close(fd)
+            editor = os.environ.get('EDITOR', 'vi')
+            subprocess.check_call([editor, temppath])
+            with open(temppath) as f:
+                message = f.read()
+            os.unlink(temppath)
 
         gitversion = subprocess.check_output(['git', '--version'])
             
@@ -84,7 +90,7 @@ def main():
         digest = _archive_sha256_of_rev(rev)
         (tmpfd,tmppath) = tempfile.mkstemp('tmp', 'git-evtag')
         with os.fdopen(tmpfd, 'w') as f:
-            f.write(args.message)
+            f.write(message)
             f.write('\n\n')
             f.write(EVTAG_SHA256_ARCHIVE_TAR)
             f.write(digest)

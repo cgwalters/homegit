@@ -1,2 +1,2 @@
 #!/bin/sh
-exec ssh -o UserKnownHostsFile=/dev/null -o GSSAPIAuthentication=no "$@"
+exec ssh -o UserKnownHostsFile=/dev/null -oStrictHostKeyChecking=no -o GSSAPIAuthentication=no "$@"

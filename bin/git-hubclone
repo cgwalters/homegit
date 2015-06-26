@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+set -e
+
+usage() {
+    echo "Usage: $0 NAME"
+    exit $1
+}
+
+fatal() {
+    echo $1 1>&2
+    exit 1
+}
+
+name=$1
+shift
+test -n "${name}" || usage 1
+
+cd ~/src/github
+dest=$(pwd)/${name}
+if test -d ${dest}; then
+    fatal "${dest} already exists"
+fi
+
+user=$(dirname $name)
+project=$(basename $name)
+mkdir -p ${user}
+cd ${user}
+git clone github:${name}
+cd ${dest}
+git remote add cgwalters github:cgwalters/${project}

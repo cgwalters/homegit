@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+# NOTICE NOTICE NOTICE
+# This command is now deprecated in favor of https://github.com/cgwalters/git-evtag
+# NOTICE NOTICE NOTICE
+
 # Like "git tag", but also embed data extended verification data,
 # currently the SHA256(git archive), protected by the GPG signature.
 # This helps obviate the SHA1 weakness concerns of git, and also can

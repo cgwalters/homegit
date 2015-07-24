@@ -14,6 +14,9 @@ alias g-amf='git commit -a --amend --no-edit'
 alias g-c='git commit -a'
 alias jhm='jhbuild make'
 alias mock='chrt --idle 0 mock'
+alias fedpkg='chrt --idle 0 fedpkg'
+alias rhpkg='chrt --idle 0 rhpkg'
+alias make='chrt --idle 0 make'
 
 if [ -f /etc/bash_completion ]; then
   . /etc/bash_completion

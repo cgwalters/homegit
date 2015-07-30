@@ -53,6 +53,11 @@
     (add-to-list 'load-path path)
     (autoload 'rust-mode "rust-mode" nil t)
     (add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-mode))))
+(let ((path "~/src/github/yoshiki/yaml-mode"))
+  (when (file-exists-p path)
+    (add-to-list 'load-path path)
+    (autoload 'yaml-mode "yaml-mode" nil t)
+    (add-to-list 'auto-mode-alist '("\\.yml$" . yaml-mode))))
 
 (custom-set-variables
   ;; custom-set-variables was added by Custom.

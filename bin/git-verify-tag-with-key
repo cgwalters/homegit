@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+# Like `git verify-tag`, except require a specific key;
+# allowing any key in the user's default keyring is
+# rather easy to subvert.
 
 from __future__ import print_function
 

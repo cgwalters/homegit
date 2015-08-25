@@ -1,0 +1,19 @@
+#!/bin/sh
+# A variant of `gpgv` that takes a KEYID (best if you use a
+# fingerprint) as the first parameter.  I most commonly want to verify
+# that content was signed with a *particular* key.
+set -e
+set -o pipefail
+
+KEYID=$1
+SIGFILE=$2
+DATAFILE=$3
+
+tmpd=$(mktemp -d)
+cleanup() {
+    rm -rf "${tmpd}"
+}
+trap cleanup 0
+gpg --batch --export ${KEYID} > ${tmpd}/key.asc
+gpg --batch -q --no-default-keyring --keyring ${tmpd}/trustedkeys.gpg --import ${tmpd}/key.asc
+gpgv --homedir ${tmpd} $SIGFILE $DATAFILE

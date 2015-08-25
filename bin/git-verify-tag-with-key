@@ -1,0 +1,43 @@
+#!/usr/bin/env python
+
+from __future__ import print_function
+
+import os
+import sys
+import subprocess
+import tempfile
+import shutil
+import argparse
+
+SIGSTART='\n-----BEGIN PGP SIGNATURE-----\n'
+
+def fatal(msg):
+    sys.stderr.write(msg)
+    sys.stderr.write('\n')
+    sys.exit(1)
+
+parser = argparse.ArgumentParser(description='Verify a GPG signed git tag with a particular key ID')
+parser.add_argument('keyid')
+parser.add_argument('tag')
+
+args = parser.parse_args()
+
+proc = subprocess.Popen(['git', 'cat-file', '--batch'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+(tagobject, _) = proc.communicate(args.tag)
+tagcontent = tagobject[tagobject.index('\n')+1:]
+idx = tagcontent.find(SIGSTART)
+if idx == -1:
+    fatal('Tag is not signed')
+signed_content = tagcontent[0:idx+1]
+signature = tagcontent[idx+1:]
+
+tmpd = tempfile.mkdtemp(prefix='git-verify-tag-with-key-')
+with open(tmpd + '/tag.txt', 'w') as f:
+    f.write(signed_content)
+with open(tmpd + '/tag.asc', 'w') as f:
+    f.write(signature)
+try:
+    subprocess.check_call(['gpgv-with-key', args.keyid, tmpd + '/tag.asc', tmpd + '/tag.txt'])
+except subprocess.CalledProcessError as e:
+    fatal("Failed to verify tag {0} with key ID {1}".format(args.tag, args.keyid))
+shutil.rmtree(tmpd)

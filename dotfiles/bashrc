@@ -16,7 +16,14 @@ alias jhm='jhbuild make'
 alias mock='chrt --idle 0 mock'
 alias fedpkg='chrt --idle 0 fedpkg'
 alias rhpkg='chrt --idle 0 rhpkg'
-alias make='chrt --idle 0 linux-user-chroot --unshare-ipc --unshare-net --unshare-pid --mount-devapi /dev --mount-proc /proc --seccomp-profile-version 0 --chdir $(pwd) / make'
+
+# https://lists.projectatomic.io/projectatomic-archives/atomic-devel/2015-September/msg00027.html
+LUC_DEFAULTS="--unshare-ipc --unshare-pid --mount-devapi /dev --mount-proc /proc --seccomp-profile-version 0"
+alias luc="linux-user-chroot ${LUC_DEFAULTS} --unshare-net "'--chdir $(pwd) / '
+alias luc-net="linux-user-chroot ${LUC_DEFAULTS} "'--chdir $(pwd) /'
+alias make='luc chrt --idle 0 make'
+alias make-net='luc-net chrt --idle make'
+alias m='make'
 
 if [ -f /etc/bash_completion ]; then
   . /etc/bash_completion

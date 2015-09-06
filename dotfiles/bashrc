@@ -16,7 +16,7 @@ alias jhm='jhbuild make'
 alias mock='chrt --idle 0 mock'
 alias fedpkg='chrt --idle 0 fedpkg'
 alias rhpkg='chrt --idle 0 rhpkg'
-alias make='chrt --idle 0 make'
+alias make='chrt --idle 0 linux-user-chroot --unshare-ipc --unshare-net --unshare-pid --mount-devapi /dev --mount-proc /proc --seccomp-profile-version 0 --chdir $(pwd) / make'
 
 if [ -f /etc/bash_completion ]; then
   . /etc/bash_completion

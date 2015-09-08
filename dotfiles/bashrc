@@ -21,8 +21,8 @@ alias rhpkg='chrt --idle 0 rhpkg'
 LUC_DEFAULTS="--unshare-ipc --unshare-pid --mount-devapi /dev --mount-proc /proc --seccomp-profile-version 0"
 alias luc="linux-user-chroot ${LUC_DEFAULTS} --unshare-net "'--chdir $(pwd) / '
 alias luc-net="linux-user-chroot ${LUC_DEFAULTS} "'--chdir $(pwd) /'
-alias make='luc chrt --idle 0 make'
-alias make-net='luc-net chrt --idle make'
+alias make='luc chrt --idle 0 make -j 4'
+alias make-net='luc-net chrt --idle make -j 4'
 alias m='make'
 
 if [ -f /etc/bash_completion ]; then

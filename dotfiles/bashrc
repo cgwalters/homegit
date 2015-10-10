@@ -78,7 +78,10 @@ _format_inroot_dir ()
     echo " [root=$INROOT_DIR]"
   else
     if test -n "$CERTIFIED_GNOMIE"; then
-      echo " [jhbuild=$MONO_GAC_PREFIX]"
+      if test -z "$JHBUILD_PREFIX"; then
+        JHBUILD_PREFIX=$MONO_GAC_PREFIX
+      fi
+      echo " [jhbuild=${JHBUILD_PREFIX}]"
     fi
   fi
 }

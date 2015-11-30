@@ -22,7 +22,7 @@ LUC_DEFAULTS="--unshare-ipc --unshare-pid --mount-devapi /dev --mount-proc /proc
 alias luc="linux-user-chroot ${LUC_DEFAULTS} --unshare-net "'--chdir $(pwd) / '
 alias luc-net="linux-user-chroot ${LUC_DEFAULTS} "'--chdir $(pwd) /'
 alias make='luc chrt --idle 0 make -j 4'
-alias make-net='luc-net chrt --idle make -j 4'
+alias make-net='luc-net chrt --idle 0 make -j 4'
 alias m='make'
 
 if test -x /usr/bin/rpm-ostree && rpm-ostree --help |grep -q install; then

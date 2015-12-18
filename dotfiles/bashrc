@@ -95,6 +95,10 @@ _format_inroot_dir ()
       echo " [jhbuild=${JHBUILD_PREFIX}]"
     fi
   fi
+
+  if test -n "$X_SCLS"; then
+    echo " [scls:${X_SCLS%% }]"
+  fi
 }
 
 _format_screen ()

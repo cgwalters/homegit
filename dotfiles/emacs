@@ -46,6 +46,8 @@
 
 (define-key viper-vi-global-user-map "m" 'push-mark-command)
 
+(setq compile-command "cd $(git rev-parse --show-toplevel) && make")
+
 (add-to-list 'load-path "~/.local/share/emacs/")
 
 (let ((path "~/src/github/rust-lang/rust-mode"))

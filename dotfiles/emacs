@@ -45,6 +45,7 @@
 (require 'viper)
 
 (define-key viper-vi-global-user-map "m" 'push-mark-command)
+(define-key viper-vi-global-user-map "q" 'recompile)
 
 (setq compile-command "cd $(git rev-parse --show-toplevel) && make")
 

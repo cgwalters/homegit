@@ -47,7 +47,7 @@
 (define-key viper-vi-global-user-map "m" 'push-mark-command)
 (define-key viper-vi-global-user-map "q" 'recompile)
 
-(setq compile-command "cd $(git rev-parse --show-toplevel) && make")
+(setq compile-command "cd $(git rev-parse --show-toplevel) && make -j 8")
 
 (add-to-list 'load-path "~/.local/share/emacs/")
 

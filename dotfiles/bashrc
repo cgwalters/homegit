@@ -63,6 +63,14 @@ fi
 EDITOR="emacsclient"
 export EDITOR
 
+_format_last_err ()
+{
+  local r=$?
+  if ! [ $r -eq 0 ]; then
+    echo -e -n '\e[1;31m[exit '$r']\e[0m '
+  fi
+}
+
 _format_wd ()
 {
   pwd=$(pwd)
@@ -115,7 +123,7 @@ _format_uid ()
   fi
 }
 
-PS1_PREFIX='$(_format_wd)$(_format_screen)$(_format_uid)$(_format_inroot_dir)'
+PS1_PREFIX='$(_format_last_err)$(_format_wd)$(_format_screen)$(_format_uid)$(_format_inroot_dir)'
 
 if test -f /usr/share/git-core/contrib/completion/git-prompt.sh; then
   source /usr/share/git-core/contrib/completion/git-prompt.sh

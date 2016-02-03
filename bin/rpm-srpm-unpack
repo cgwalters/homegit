@@ -1,0 +1,10 @@
+#!/bin/sh
+# rpm-srpm-unpack:
+# Run "rpm -ivh", on a SRPM, unpacking to the current directory.
+#
+# Licensed under the new-BSD license (http://www.opensource.org/licenses/bsd-license.php)
+# Copyright (C) 2016 Red Hat, Inc.
+# Written by Colin Walters <walters@verbum.org>
+
+pwd=$(pwd)
+exec rpm --define "_sourcedir ${pwd}" --define "_specdir ${pwd}" --define "_builddir ${pwd}" --define "_srcrpmdir ${pwd}" --define "_rpmdir ${pwd}" --define "_buildrootdir ${pwd}/.build" -ivh "$@"

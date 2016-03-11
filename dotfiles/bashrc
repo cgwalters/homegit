@@ -107,6 +107,10 @@ _format_inroot_dir ()
   if test -n "$X_SCLS"; then
     echo " [scls:${X_SCLS%% }]"
   fi
+
+  if test -n "$OS_PROJECT_NAME"; then
+    echo " [osproj:${OS_PROJECT_NAME}]"
+  fi
 }
 
 _format_screen ()

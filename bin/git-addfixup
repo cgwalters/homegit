@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+# Like git commit -a --fixup, except auto-fixup the last non-fixup commit.
+# This makes it more convenient to generate a stream of fixups.
+#
+# Copyright 2016 Colin Walters <walters@verbum.org>
+# Licensed under the new-BSD license (http://www.opensource.org/licenses/bsd-license.php)
+
+set -euo pipefail
+
+# Invert the regexp...yeah it's ugly.
+last_non_fixup=$(git log --format=oneline -1 --grep='^[^f][^i][^x][^u][^p][^!][^ ]')
+echo "Last non fixup: ${last_non_fixup}"
+rev=$(echo ${last_non_fixup} | awk '{ print $1 }')
+set -x
+git commit -a --fixup "${rev}"

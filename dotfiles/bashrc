@@ -105,11 +105,11 @@ _format_inroot_dir ()
   fi
 
   if test -n "$X_SCLS"; then
-    echo " [scls:${X_SCLS%% }]"
+    echo -n " [scls:${X_SCLS%% }]"
   fi
 
   if test -n "$OS_PROJECT_NAME"; then
-    echo " [osproj:${OS_PROJECT_NAME}]"
+    echo -n " [osproj:${OS_PROJECT_NAME}]"
   fi
 }
 

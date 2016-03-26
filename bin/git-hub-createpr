@@ -14,7 +14,7 @@ fatal() {
 
 remote_to_push=$(git remote -v | grep -m 1 "(push)")
 remotename=$(echo ${remote_to_push} | awk '{ print $1 }')
-repo=$(echo ${remote_to_push} | sed -e "s,.* *github.com/\([^ ]*\) *(push),\1,")
+repo=$(echo ${remote_to_push} | sed -e "s,.* *github.com[:/]\([^ .]*\)\(.git\)\? *(push),\1,")
 
 current_branch=$(git rev-parse --abbrev-ref HEAD)
 target_branch=$(git name-rev --name-only HEAD)

@@ -17,6 +17,8 @@ alias mock='chrt --idle 0 mock'
 alias fedpkg='chrt --idle 0 fedpkg'
 alias rhpkg='chrt --idle 0 rhpkg'
 
+alias vagrant='env -u SSH_AUTH_SOCK vagrant'
+
 # https://lists.projectatomic.io/projectatomic-archives/atomic-devel/2015-September/msg00027.html
 LUC_DEFAULTS="--unshare-ipc --unshare-pid --mount-devapi /dev --mount-proc /proc --seccomp-profile-version 0"
 alias luc="linux-user-chroot ${LUC_DEFAULTS} --unshare-net "'--chdir $(pwd) / '

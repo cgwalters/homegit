@@ -9,8 +9,8 @@ fi
 
 alias l='longrun'
 alias g-d='git diff'
-alias g-am='git commit -a --amend'
-alias g-amf='git commit -a --amend --no-edit'
+alias g-am='git commit -a --amend --no-edit'
+alias g-amr='git commit -a --amend'
 alias g-c='git commit -a'
 alias jhm='jhbuild make'
 alias mock='chrt --idle 0 mock'

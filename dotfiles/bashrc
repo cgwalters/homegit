@@ -102,7 +102,7 @@ _format_inroot_dir ()
       if test -z "$JHBUILD_PREFIX"; then
         JHBUILD_PREFIX=$MONO_GAC_PREFIX
       fi
-      echo " [jhbuild=${JHBUILD_PREFIX}]"
+      echo -n " [jhbuild=${JHBUILD_PREFIX}]"
     fi
   fi
 
@@ -145,4 +145,3 @@ fi
 
 PS1="$PS1_PREFIX"'\n\$ '
 export PS1
-

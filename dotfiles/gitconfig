@@ -23,3 +23,5 @@
 	pretty = fuller
 [push]
 	default = simple
+[gpg]
+	program = gpg2

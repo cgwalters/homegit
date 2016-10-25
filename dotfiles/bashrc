@@ -19,15 +19,6 @@ alias rhpkg='chrt --idle 0 rhpkg'
 
 alias vagrant='env -u SSH_AUTH_SOCK vagrant'
 
-# https://lists.projectatomic.io/projectatomic-archives/atomic-devel/2015-September/msg00027.html
-# Now ported to bubblewrap
-BWRAP_DEFAULTS="--unshare-pid --unshare-ipc --bind / / --bind /var/empty /home --dev /dev"
-alias bwrap-u="bwrap ${BWRAP_DEFAULTS} --unshare-net "'--chdir $(pwd)'
-alias bwrap-u-net="bwrap ${BWRAP_DEFAULTS} "'--chdir $(pwd)'
-alias make='bwrap-u chrt --idle 0 make -j 4'
-alias make-net='bwrap-u-net chrt --idle 0 make -j 4'
-alias m='make'
-
 if test -x /usr/bin/rpm-ostree && rpm-ostree --help |grep -q install; then
    alias pkg=/usr/bin/rpm-ostree
 else

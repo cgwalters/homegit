@@ -11,6 +11,8 @@
 	insteadof = fd:
 [url "ssh://git.fedorahosted.org/git/"]
 	insteadof = fedorahosted:
+[url "git+ssh://walters@git.launchpad.net/"]
+        insteadof = lp:
 [giggle]
 	main-window-maximized = false
 	main-window-geometry = 988x528+0+26

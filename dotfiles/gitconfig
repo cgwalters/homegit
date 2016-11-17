@@ -27,3 +27,5 @@
 	default = simple
 [gpg]
 	program = gpg2
+[alias]
+	br = branch --sort=-committerdate

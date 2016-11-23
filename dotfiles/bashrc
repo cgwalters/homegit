@@ -141,7 +141,8 @@ fi
 PS1="$PS1_PREFIX"'\n\$ '
 export PS1
 
-if [ -f `which powerline-daemon` ]; then
+pd=$(which powerline-daemon 2>/dev/null)
+if [ -n "${pd:-}" ]; then
   powerline-daemon -q
   POWERLINE_BASH_CONTINUATION=1
   POWERLINE_BASH_SELECT=1

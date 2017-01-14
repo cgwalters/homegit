@@ -19,6 +19,7 @@ alias fedpkg='chrt --idle 0 fedpkg'
 alias rhpkg='chrt --idle 0 rhpkg'
 
 alias vagrant='env -u SSH_AUTH_SOCK vagrant'
+alias vssh='vagrant up && vagrant ssh'
 
 if test -x /usr/bin/rpm-ostree && rpm-ostree --help |grep -q install; then
    alias pkg=/usr/bin/rpm-ostree

@@ -139,13 +139,18 @@ if $have_git_ps1; then
   PS1_PREFIX="$PS1_PREFIX"'$(__git_ps1 " [git %s]")'
 fi
 
-PS1="$PS1_PREFIX"'\n\$ '
-export PS1
+if test -z "${SIMPLE_PS1:-}"; then
+   PS1="$PS1_PREFIX"'\n\$ '
+   export PS1
 
-pd=$(which powerline-daemon 2>/dev/null)
-if [ -n "${pd:-}" ]; then
-  powerline-daemon -q
-  POWERLINE_BASH_CONTINUATION=1
-  POWERLINE_BASH_SELECT=1
-  . /usr/share/powerline/bash/powerline.sh
+   pd=$(which powerline-daemon 2>/dev/null)
+   if [ -n "${pd:-}" ]; then
+     powerline-daemon -q
+     POWERLINE_BASH_CONTINUATION=1
+     POWERLINE_BASH_SELECT=1
+     . /usr/share/powerline/bash/powerline.sh
+   fi
+else
+  PS1='$ '
 fi
+

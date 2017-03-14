@@ -12,7 +12,7 @@ fatal() {
     exit 1
 }
 
-remote_to_push=$(git remote -v | grep -m 1 "(push)")
+remote_to_push=$(git remote -v | grep -m 1 "cgwalters.*(push)")
 remotename=$(echo ${remote_to_push} | awk '{ print $1 }')
 repo=$(echo ${remote_to_push} | sed -e "s,.* *github.com[:/]\([^ .]*\)\(.git\)\? *(push),\1,")
 

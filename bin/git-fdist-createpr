@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+# Open browser to create a pagure.io pull request
+# Copyright 2017 Colin Walters <walters@verbum.org>
+# Licensed under the new-BSD license (http://www.opensource.org/licenses/bsd-license.php)
+
+set -euo pipefail
+
+fatal() {
+    echo "$@" 1>&2
+    exit 1
+}
+
+user=${USER}
+pushhost=pkgs.fedoraproject.org
+webhost=src.fedoraproject.org
+
+remote_to_push=$(git remote -v | grep -m 1 "${USER}.*(push)")
+remotename=$(echo ${remote_to_push} | awk '{ print $1 }')
+repo=$(echo ${remote_to_push} | sed -e "s,.* *${pushhost}[:/]\([^ .]*\)\(.git\)\? *(push),\1,")
+# Work around pagure/dist-git asymmetry
+repo=$(echo ${repo} | sed -e s,forks/,fork/,)
+
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+target_branch=$(git name-rev --name-only HEAD)
+if test ${current_branch} = "master"; then
+    fatal "Must create a PR against a non-master branch"
+fi
+echo 'Creating pull request for branch "'${target_branch} 'in "'${repo}'"'
+set -x
+git push --set-upstream ${remotename} ${current_branch}
+xdg-open https://${webhost}/${repo}/diff/master..${current_branch}

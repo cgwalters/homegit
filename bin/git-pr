@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+
+# Open browser to create a pull request against one of
+#  - github
+#  - pagure.io
+#  - src.fedoraproject.org (pagure)
+#
+# Based on http://www.devthought.com/code/create-a-github-pull-request-from-the-terminal/
+# Copyright 2016 Colin Walters <walters@verbum.org>
+# Licensed under the new-BSD license (http://www.opensource.org/licenses/bsd-license.php)
+#
+# To configure your username on a site, use e.g.:
+#
+# git config --global user.githubid yourgithubusername
+#
+# For fedora, it's "user.fasid".  The default matches your
+# local Unix username.
+
+set -euo pipefail
+
+fatal() {
+    echo "$@" 1>&2
+    exit 1
+}
+
+origin_push=$(git remote show origin | grep 'Push.*URL:')
+user=${USER}
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+target_branch=$(git name-rev --name-only HEAD)
+if test ${current_branch} = "master"; then
+    fatal "Must create a PR against a non-master branch"
+fi
+
+case ${origin_push} in
+    *ssh://git@github.com/*)
+        user=$(git config --get user.githubid || echo ${user})
+        remote_to_push=$(git remote -v | grep -m 1 "${user}.*(push)")
+        remotename=$(echo ${remote_to_push} | awk '{ print $1 }')
+        repo=$(echo ${remote_to_push} | sed -e "s,.* *github.com[:/]\([^ .]*\)\(.git\)\? *(push),\1,")
+
+        url=https://github.com/${repo}/pull/new/${current_branch}
+        ;;
+    *ssh://git@pagure.io/*)
+        user=$(git config --get user.fasid || echo ${user})
+        remote_to_push=$(git remote -v | grep -m 1 "${user}.*(push)")
+        remotename=$(echo ${remote_to_push} | awk '{ print $1 }')
+        repo=$(echo ${remote_to_push} | sed -e "s,.* *pagure.io[:/]\([^ .]*\)\(.git\)\? *(push),\1,")
+        # Work around pagure/dist-git asymmetry
+        repo=$(echo ${repo} | sed -e s,forks/,fork/,)
+        url=https://pagure.io/${repo}/diff/master..${current_branch}
+        ;;
+    *ssh://pkgs.fedoraproject.org/*)
+        pushhost=pkgs.fedoraproject.org
+        webhost=src.fedoraproject.org
+
+        user=$(git config --get user.fasid || echo ${user})
+        remote_to_push=$(git remote -v | grep -m 1 "${user}.*(push)")
+        remotename=$(echo ${remote_to_push} | awk '{ print $1 }')
+        repo=$(echo ${remote_to_push} | sed -e "s,.* *${pushhost}[:/]\([^ .]*\)\(.git\)\? *(push),\1,")
+        # Work around pagure/dist-git asymmetry
+        repo=$(echo ${repo} | sed -e s,forks/,fork/,)
+
+        url=https://${webhost}/${repo}/diff/master..${current_branch}
+        ;;
+    *) echo "Unhandled origin ${origin_push}"
+esac
+
+echo 'Creating pull request for branch "'${target_branch} 'in "'${repo}'"'
+set -x
+git push --set-upstream ${remotename} ${current_branch}
+xdg-open ${url}

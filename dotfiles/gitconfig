@@ -1,6 +1,7 @@
 [user]
 	email = walters@verbum.org
 	name = Colin Walters
+	githubid = cgwalters
 [bz]
 	browser = firefox3
 [url "ssh://walters@git.gnome.org/git/"]

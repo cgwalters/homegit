@@ -18,8 +18,7 @@ done
 match=${1:-}
 # Without a specific commit, use -a on the last non-fixup
 if test -z "${match}"; then
-    # Invert the regexp...yeah it's ugly.
-    last_non_fixup=$(git log --format=oneline -1 --grep='^[^f][^i][^x][^u][^p][^!][^ ]')
+    last_non_fixup=$(git log --format=oneline -1 --invert-grep --grep='^fixup! ')
     echo "Last non fixup: ${last_non_fixup}"
     rev=$(echo ${last_non_fixup} | awk '{ print $1 }')
     git commit -a $git_args --fixup "${rev}"

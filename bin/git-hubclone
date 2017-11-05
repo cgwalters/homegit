@@ -16,6 +16,8 @@ name=$1
 shift
 test -n "${name}" || usage 1
 
+name=$(echo ${name} | sed -e 's,^\(.*/\)?\([^/]*\)/\(.*)\)$,\2/\3,')
+
 cd ~/src/github
 dest=$(pwd)/${name}
 if test -d ${dest}; then

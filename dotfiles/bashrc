@@ -40,8 +40,8 @@ export PATH="$HOME/.local/bin:$PATH"
 
 export CCACHE_DIR=/srv/walters/ccache
 
-HISTSIZE=5000
-export HISTSIZE
+HISTCONTROL=ignoreboth
+export HISTSIZE=5000
 shopt -s histappend
 
 LAST_HISTORY_WRITE=$SECONDS

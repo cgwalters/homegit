@@ -1,0 +1,86 @@
+#!/usr/bin/env python3
+
+# Copyright 2017 Colin Walters <walters@verbum.org>
+# Licensed under the new-BSD license (http://www.opensource.org/licenses/bsd-license.php)
+
+import os, re, sys
+import subprocess
+import tempfile
+import hashlib
+import argparse
+
+homure = re.compile(r'^Closes: #([0-9]+)\nApproved by:', re.MULTILINE)
+
+import git
+
+parser = argparse.ArgumentParser()
+parser.add_argument('spec', help="Revision range")
+args = parser.parse_args()
+
+repo = git.Repo(os.getcwd())
+
+prsets = {} # ID to [commit]
+unmatched = set()
+authors_to_prsets = {}
+authors_to_ncommits = {}
+
+for commit in repo.iter_commits(args.spec):
+    m = homure.search(commit.message)
+    if not m:
+        print(commit.message)
+        sys.exit(1)
+        unmatched.add(commit)
+        continue
+    prid = int(m.group(1))
+    prset = prsets.setdefault(prid, [])
+    prset.append(commit)
+
+    author = commit.author
+    authors_to_prsets.setdefault(author, set()).add(prid)
+    authors_to_ncommits.setdefault(author, 0)
+    authors_to_ncommits[author] += 1
+
+def plural(n):
+    if n != 1:
+        return 's'
+    return ''
+
+for author in sorted(authors_to_prsets, key=lambda x:x.name):
+    author_prsets = authors_to_prsets[author]
+    n_prsets = len(author_prsets)
+    n_commits = authors_to_ncommits[author]
+    print("{} ({} PR{}, {} commit{})".format(author, n_prsets, plural(n_prsets),
+                                             n_commits, plural(n_commits)))
+    author_singleton_prsets = set()
+    author_group_prsets = set()
+    for prset in sorted(author_prsets):
+        prset_commits = prsets[prset]
+        if len(prset_commits) > 1:
+            author_group_prsets.add(prset)
+        else:
+            author_singleton_prsets.add(prset)
+
+    for prset in sorted(author_singleton_prsets):
+        prset_commits = prsets[prset]
+        commit = prset_commits[0]
+        nl = commit.message.find('\n')
+        print("  {} (#{})".format(commit.message[0:nl], prset))
+
+    for prset in sorted(author_group_prsets):
+        prset_commits = prsets[prset]
+        print("  PR: #{}".format(prset))
+        n_other = 0
+        for commit in sorted(prset_commits, key=lambda x: x.committed_date):
+            if commit.author != author:
+                n_other += 1
+            else:
+                nl = commit.message.find('\n')
+                print("    {}".format(commit.message[0:nl]))
+        if n_other > 0:
+                print("    (and {} commits from other authors)".format(n_other))
+    print("")
+
+if len(unmatched) > 0:
+    print("Unmatched:")
+    for commit in unmatched:
+        print(commit)

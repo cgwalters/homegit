@@ -67,5 +67,5 @@ esac
 
 echo 'Creating pull request for branch "'${target_branch} 'in "'${repo}'"'
 set -x
-git push --set-upstream ${remotename} ${current_branch}
+git push "$@" --set-upstream ${remotename} ${current_branch}
 xdg-open ${url}

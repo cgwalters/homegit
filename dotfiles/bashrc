@@ -1,4 +1,4 @@
-# .bashrc
+# -*- mode: sh -*-
 
 # Source global definitions
 if [ -f /etc/bashrc ]; then
@@ -38,6 +38,9 @@ if [ -f /etc/bash_completion ]; then
 fi
 
 export PATH="$HOME/.local/bin:$PATH"
+if test -z "${SSH_AUTH_SOCK:-}"; then
+   export SSH_AUTH_SOCK=/run/user/$(id -u)/keyring/ssh
+fi
 
 export CCACHE_DIR=/srv/walters/ccache
 

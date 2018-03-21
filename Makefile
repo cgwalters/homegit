@@ -1,14 +1,11 @@
 all:
+	echo "Targets: install install-bin install-dotfiles"
 
-# We won't nuke people's dotfiles by default
-install: install-bin
+install: install-bin install-dotfiles
 
 install-bin:
-	mkdir -p $$HOME/bin 2>/dev/null
-	for f in bin/*; do \
-	  bn=$$(basename $$f); \
-	  ln -sf $$(pwd)/bin/$$bn ~/bin; \
-	done
+	mkdir -p $$HOME/.local/bin
+	for f in bin/*; do if test -x ${f}; then ln -sfr $${f} ~/.local/bin; fi; done
 
 install-dotfiles:
 	@for f in dotfiles/*; do \

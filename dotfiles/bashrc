@@ -42,8 +42,6 @@ if test -z "${SSH_AUTH_SOCK:-}"; then
    export SSH_AUTH_SOCK=/run/user/$(id -u)/keyring/ssh
 fi
 
-export CCACHE_DIR=/srv/walters/ccache
-
 HISTCONTROL=ignoreboth
 export HISTSIZE=5000
 shopt -s histappend

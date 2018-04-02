@@ -52,6 +52,9 @@ else
 fi
 export EDITOR
 
+bold=$(tput bold)
+normal=$(tput sgr0)
+
 _format_last_err ()
 {
   local r=$?
@@ -69,7 +72,7 @@ _format_wd ()
   if test "$pparent" != "/"; then
     echo -n "$parent/";
     echo -n "$base";
-  else 
+  else
     if test "$parent" != "/"; then
       echo -n "/$parent/"
       echo -n "$base";
@@ -80,43 +83,17 @@ _format_wd ()
   fi
 }
 
-_format_inroot_dir ()
-{
-  if test -n "$INROOT_DIR"; then
-    echo " [root=$INROOT_DIR]"
-  else
-    if test -n "$CERTIFIED_GNOMIE"; then
-      if test -z "$JHBUILD_PREFIX"; then
-        JHBUILD_PREFIX=$MONO_GAC_PREFIX
-      fi
-      echo -n " [jhbuild=${JHBUILD_PREFIX}]"
+_format_ctx () {
+    if test -f /run/ostree-booted; then
+        echo -n "${bold:-}host${normal:-}:${USER}@$(hostname -s) "
+    else
+        if test "${container:-}"; then
+            echo -n "container:${USER}@${container} "
+        fi
     fi
-  fi
-
-  if test -n "$X_SCLS"; then
-    echo -n " [scls:${X_SCLS%% }]"
-  fi
-
-  if test -n "$OS_PROJECT_NAME"; then
-    echo -n " [osproj:${OS_PROJECT_NAME}]"
-  fi
 }
 
-_format_screen ()
-{
-  if test -n "$WINDOW"; then
-    echo -n " [scr:$WINDOW]";
-  fi
-}
-
-_format_uid ()
-{
-  if test $(id -u) = '0'; then
-    echo -n " <"; echo -n "uid=0"; echo -n ">"; 
-  fi
-}
-
-PS1_PREFIX='$(_format_last_err)$(_format_wd)$(_format_screen)$(_format_uid)$(_format_inroot_dir)'
+PS1_PREFIX='$(_format_last_err)$(_format_ctx)$(_format_wd)'
 
 if test -f /usr/share/git-core/contrib/completion/git-prompt.sh; then
   source /usr/share/git-core/contrib/completion/git-prompt.sh
@@ -130,22 +107,5 @@ if $have_git_ps1; then
   PS1_PREFIX="$PS1_PREFIX"'$(__git_ps1 " [git %s]")'
 fi
 
-if test -z "${SIMPLE_PS1:-}"; then
-   PS1="$PS1_PREFIX"'\n\$ '
-   export PS1
-
-   pd=$(which powerline-daemon 2>/dev/null)
-   if [ -n "${pd:-}" ]; then
-     # Use unique ID if we're in a container, because with --net=host we
-     # may end up sharing an abstract socket
-     POWERLINE_SOCKET=${XDG_RUNTIME_DIR}/powerline.${container_uuid:-}
-     powerline-daemon -q --socket ${POWERLINE_SOCKET}
-     POWERLINE_COMMAND_ARGS="--socket ${POWERLINE_SOCKET}"
-     POWERLINE_BASH_CONTINUATION=1
-     POWERLINE_BASH_SELECT=1
-     . /usr/share/powerline/bash/powerline.sh
-   fi
-else
-  PS1='$ '
-fi
-
+PS1="$PS1_PREFIX"'\n\$ '
+export PS1

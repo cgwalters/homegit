@@ -24,7 +24,7 @@ alias vrssh='vagrant up && vagrant ssh -c "sudo su -"'
 
 export PATH="$HOME/.local/bin:$PATH"
 if test -z "${SSH_AUTH_SOCK:-}"; then
-   export SSH_AUTH_SOCK=/run/user/$(id -u)/keyring/ssh
+   export SSH_AUTH_SOCK=${XDG_RUNTIME_DIR}/keyring/ssh
 fi
 
 HISTCONTROL=ignoreboth

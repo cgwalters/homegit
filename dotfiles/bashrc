@@ -136,7 +136,11 @@ if test -z "${SIMPLE_PS1:-}"; then
 
    pd=$(which powerline-daemon 2>/dev/null)
    if [ -n "${pd:-}" ]; then
-     powerline-daemon -q
+     # Use unique ID if we're in a container, because with --net=host we
+     # may end up sharing an abstract socket
+     POWERLINE_SOCKET=${XDG_RUNTIME_DIR}/powerline.${container_uuid:-}
+     powerline-daemon -q --socket ${POWERLINE_SOCKET}
+     POWERLINE_COMMAND_ARGS="--socket ${POWERLINE_SOCKET}"
      POWERLINE_BASH_CONTINUATION=1
      POWERLINE_BASH_SELECT=1
      . /usr/share/powerline/bash/powerline.sh

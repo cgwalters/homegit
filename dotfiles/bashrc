@@ -45,7 +45,11 @@ else
   PROMPT_COMMAND="save_history_prompt_command"
 fi
 
-EDITOR="emacsclient"
+if test -x /usr/bin/vim; then
+    EDITOR=vim
+else
+    EDITOR=vi
+fi
 export EDITOR
 
 _format_last_err ()

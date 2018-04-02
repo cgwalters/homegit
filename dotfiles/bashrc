@@ -87,6 +87,11 @@ _format_ctx () {
     if test -f /run/ostree-booted; then
         echo -n "${bold:-}host${normal:-}:${USER}@$(hostname -s) "
     else
+        # entrypoint.sh in my dev containers writes /run/container
+        if test -z "${container:-}" && test -f /run/container; then
+            container=$(cat /run/container)
+            export container
+        fi
         if test "${container:-}"; then
             echo -n "container:${USER}@${container} "
         fi

@@ -55,6 +55,7 @@ export EDITOR
 bold=$(tput bold)
 normal=$(tput sgr0)
 
+# Last command status
 _format_last_err ()
 {
   local r=$?
@@ -63,6 +64,7 @@ _format_last_err ()
   fi
 }
 
+# Only print the top two directories
 _format_wd ()
 {
   pwd=$(pwd)
@@ -83,6 +85,7 @@ _format_wd ()
   fi
 }
 
+# Context is privileges, container vs not
 _format_ctx () {
     if test -f /run/ostree-booted; then
         echo -n "${bold:-}host${normal:-}:${USER}@$(hostname -s) "
@@ -92,8 +95,16 @@ _format_ctx () {
             container=$(cat /run/container)
             export container
         fi
-        if test "${container:-}"; then
-            echo -n "container:${USER}@${container} "
+        if test -n "${container:-}"; then
+            local privprefix=
+            if capsh --print |grep -qEe '^Current.*cap_sys_admin'; then
+                privprefix="${bold:-}priv${normal:-}"
+            fi
+            local user=${USER}
+            if test ${user} = root; then
+                user="${bold:-}${user}${normal:-}"
+            fi
+            echo -n "${privprefix}container:${user}@$(hostname -s) "
         fi
     fi
 }

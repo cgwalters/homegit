@@ -22,21 +22,6 @@ alias vagrant='env -u SSH_AUTH_SOCK vagrant'
 alias vssh='vagrant up && vagrant ssh'
 alias vrssh='vagrant up && vagrant ssh -c "sudo su -"'
 
-if test -x /usr/bin/rpm-ostree && rpm-ostree --help |grep -q install; then
-   alias pkg=/usr/bin/rpm-ostree
-else
-  for p in /usr/bin/yum /usr/bin/dnf /usr/bin/apt-get; do
-    if test -x $p; then
-      alias pkg=$p
-      break
-    fi
-  done
-fi
-
-if [ -f /etc/bash_completion ]; then
-  . /etc/bash_completion
-fi
-
 export PATH="$HOME/.local/bin:$PATH"
 if test -z "${SSH_AUTH_SOCK:-}"; then
    export SSH_AUTH_SOCK=/run/user/$(id -u)/keyring/ssh
@@ -75,8 +60,8 @@ _format_wd ()
 {
   pwd=$(pwd)
   base=$(basename "$pwd")
-  parent=$(basename $(dirname "$pwd")) 
-  pparent=$(basename $(dirname "$parent")) 
+  parent=$(basename $(dirname "$pwd"))
+  pparent=$(basename $(dirname "$parent"))
   if test "$pparent" != "/"; then
     echo -n "$parent/";
     echo -n "$base";

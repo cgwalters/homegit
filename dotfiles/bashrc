@@ -96,6 +96,12 @@ _format_ctx () {
             export container
         fi
         if test -n "${container:-}"; then
+            local osid=""
+            if test -f /etc/os-release; then
+                osid=$(. /etc/os-release && echo ${ID}${VERSION_ID})
+            else
+                osid=$(hostname -s)
+            fi
             local privprefix=
             if capsh --print |grep -qEe '^Current.*cap_sys_admin'; then
                 privprefix="${bold:-}priv${normal:-}"
@@ -104,7 +110,7 @@ _format_ctx () {
             if test ${user} = root; then
                 user="${bold:-}${user}${normal:-}"
             fi
-            echo -n "${privprefix}container:${user}@$(hostname -s) "
+            echo -n "${privprefix}container:${user}@${osid} "
         fi
     fi
 }

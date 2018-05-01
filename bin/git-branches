@@ -1,2 +1,2 @@
 #!/bin/sh
-exec git branch --sort=-committerdate
+git branch --sort=committerdate | tail

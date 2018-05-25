@@ -22,8 +22,8 @@ alias vagrant='env -u SSH_AUTH_SOCK vagrant'
 alias vssh='vagrant up && vagrant ssh'
 alias vrssh='vagrant up && vagrant ssh -c "sudo su -"'
 
-alias podman-f27='sudo su -c "podman run --rm -ti --privileged -v /run/user/1000/keyring:/run/user/1000/keyring -v /var/tmp:/var/tmp -v /srv:/srv:rslave -v /run/libvirt:/run/libvirt --net=host cgwalters/fedora-dev:28"'
-alias podman-f28='sudo su -c "podman run --rm -ti --privileged -v /run/user/1000/keyring:/run/user/1000/keyring -v /var/tmp:/var/tmp -v /srv:/srv:rslave -v /run/libvirt:/run/libvirt --net=host cgwalters/fedora-dev:27"'
+alias podman-f27='sudo su -c "podman run --rm -ti --privileged -v /run/user/1000/keyring:/run/user/1000/keyring -v /var/tmp:/var/tmp -v /srv:/srv:rslave -v /run/libvirt:/run/libvirt --net=host cgwalters/fedora-dev:27"'
+alias podman-f28='sudo su -c "podman run --rm -ti --privileged -v /run/user/1000/keyring:/run/user/1000/keyring -v /var/tmp:/var/tmp -v /srv:/srv:rslave -v /run/libvirt:/run/libvirt --net=host cgwalters/fedora-dev:28"'
 
 export PATH="$HOME/.local/bin:$PATH"
 if test -z "${SSH_AUTH_SOCK:-}"; then

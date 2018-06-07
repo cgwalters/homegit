@@ -22,6 +22,8 @@ alias vagrant='env -u SSH_AUTH_SOCK vagrant'
 alias vssh='vagrant up && vagrant ssh'
 alias vrssh='vagrant up && vagrant ssh -c "sudo su -"'
 
+alias bwraphost='bwrap --unshare-all --bind / / --dev /dev --proc /proc'
+
 podman_base() {
     sudo runuser -u root -- podman run --rm -ti --privileged -v /run/user/1000/keyring:/run/user/1000/keyring -v /var/tmp:/var/tmp \
                            -v /srv/devshell-home:/home/walters -v /srv:/srv:rslave -v /run/libvirt:/run/libvirt \

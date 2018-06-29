@@ -77,7 +77,8 @@ for author in sorted(authors_to_prsets, key=lambda x:x.name):
                 nl = commit.message.find('\n')
                 print("    {}".format(commit.message[0:nl]))
         if n_other > 0:
-                print("    (and {} commits from other authors)".format(n_other))
+                print("    (and {0} commit{1} from other author{1})"
+                      .format(n_other, plural(n_other)))
     print("")
 
 if len(unmatched) > 0:

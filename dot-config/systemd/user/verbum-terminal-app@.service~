@@ -1,0 +1,7 @@
+[Unit]
+#Requires=verbum-terminal@%I.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/gnome-terminal --app-id org.verbum.terminal.%I --profile=%I
+RemainAfterExit=yes

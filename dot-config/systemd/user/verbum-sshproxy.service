@@ -1,0 +1,6 @@
+[Service]
+Type=simple
+ExecStart=/usr/bin/ssh olympus-irc.verbum.org
+Environment=SSH_AUTH_SOCK=/run/user/1000/keyring/ssh
+RestartSec=5
+Restart=always

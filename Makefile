@@ -18,3 +18,10 @@ install-dotfiles:
 	    ln -sf $$(pwd)/dotfiles/$$bn $$target; \
 	  fi; \
 	done
+
+install-config:
+	mkdir -p ~/.config
+	cp -a --reflink=auto dot-config/* ~/.config/
+	mkdir -p ~/.ssh
+	cp -a --reflink=auto dot-ssh/* ~/.ssh/
+

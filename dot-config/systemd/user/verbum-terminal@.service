@@ -1,0 +1,6 @@
+[Service]
+Type=simple
+ExecStart=/usr/libexec/gnome-terminal-server --class %I --app-id org.verbum.terminal.%I
+
+[Install]
+WantedBy=default.target

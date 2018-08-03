@@ -1,0 +1,52 @@
+[legacy/profiles:/:f96216b7-0d2a-4d0b-ab50-2f32c7e97d6b]
+foreground-color='rgb(0,255,0)'
+visible-name='Root'
+custom-command='sudo su -'
+title='Root'
+use-system-font=true
+use-custom-command=true
+use-theme-colors=false
+title-mode='after'
+background-color='rgb(0,0,0)'
+audible-bell=false
+
+[legacy/profiles:/:b1dcc9dd-5262-4d8d-a863-c897e6d979b9]
+background-color='rgb(255,255,255)'
+title='Host User'
+title-mode='after'
+foreground-color='rgb(0,0,0)'
+use-system-font=true
+audible-bell=false
+use-theme-colors=false
+
+[legacy/profiles:/:3b5f24af-c562-4380-bded-673a83118cdd]
+foreground-color='rgb(101,123,131)'
+visible-name='SSH'
+custom-command='sudo su -'
+title='SSH'
+cursor-shape='block'
+use-custom-command=false
+use-theme-colors=false
+use-system-font=false
+title-mode='after'
+background-color='rgb(253,246,227)'
+audible-bell=false
+
+[legacy/profiles:]
+list=['b1dcc9dd-5262-4d8d-a863-c897e6d979b9', 'b1472d36-33a6-4a38-9868-6cf7ee2d0b48', 'f96216b7-0d2a-4d0b-ab50-2f32c7e97d6b', '3b5f24af-c562-4380-bded-673a83118cdd']
+
+[legacy/profiles:/:b1472d36-33a6-4a38-9868-6cf7ee2d0b48]
+foreground-color='rgb(0,0,0)'
+visible-name='Containers'
+custom-command='sudo su -'
+title='Containers'
+cursor-shape='block'
+use-custom-command=false
+use-theme-colors=false
+use-system-font=true
+title-mode='after'
+background-color='rgb(255,255,221)'
+audible-bell=false
+
+[legacy]
+schema-version=uint32 3

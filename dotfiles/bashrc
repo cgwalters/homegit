@@ -25,9 +25,7 @@ alias vrssh='vagrant up && vagrant ssh -c "sudo su -"'
 alias bwraphost='bwrap --unshare-all --bind / / --dev /dev --proc /proc'
 
 podman_base() {
-    sudo runuser -u root -- podman run --rm -ti --privileged -v /run/user/1000/keyring:/run/user/1000/keyring -v /var/tmp:/var/tmp \
-                           -v /srv/devshell-home:/home/walters -v /srv:/srv:rslave -v /run/libvirt:/run/libvirt \
-                           --net=host "$@"
+    sudo runuser -u root -- podman run --net=host --rm -ti "$@"
 }
 podman_shell() {
     img=$1
@@ -37,7 +35,13 @@ podman_shell() {
 podman_privshell() {
     img=$1
     shift
-    podman_base --privileged ${img} "$@"
+    id=$(id -u)
+    podman_base --privileged -v ${XDG_RUNTIME_DIR}/keyring:${XDG_RUNTIME_DIR}/keyring \
+                -v /srv:/srv:rslave \
+                -v /run/libvirt:/run/libvirt \
+                -v /var/tmp:/var/tmp:rslave -v /srv/privcontainers/home:/home/walters \
+                -v /srv/privcontainers/roothome:/var/roothome \
+                ${img} "$@"
 }
 
 export PATH="$HOME/.local/bin:$PATH"

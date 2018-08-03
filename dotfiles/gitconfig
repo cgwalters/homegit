@@ -35,4 +35,4 @@
 [alias]
 	rxclean = !git clean -dfx && git submodule foreach git clean -dfx
 [alias]
-	yolo = !git push -f
+	yolo = !git push --force-with-lease

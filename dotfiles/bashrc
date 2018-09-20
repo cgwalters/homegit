@@ -23,6 +23,9 @@ alias mock='chrt --idle 0 mock'
 alias fedpkg='chrt --idle 0 fedpkg'
 alias rhpkg='chrt --idle 0 rhpkg'
 
+# https://unix.stackexchange.com/questions/79684/fix-terminal-after-displaying-a-binary-file
+alias reset='/usr/bin/reset; stty sane; tput rs1; clear; echo -e "\033c"'
+
 alias vagrant='env -u SSH_AUTH_SOCK vagrant'
 alias vssh='vagrant up && vagrant ssh'
 alias vrssh='vagrant up && vagrant ssh -c "sudo su -"'

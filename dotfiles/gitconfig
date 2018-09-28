@@ -4,7 +4,7 @@
 	githubid = cgwalters
 [bz]
 	browser = firefox3
-[url "ssh://walters@git.gnome.org/git/"]
+[url "ssh://git@gitlab.gnome.org/GNOME/"]
 	insteadof = gnome:
 [url "ssh://git@github.com/"]
 	insteadof = github:

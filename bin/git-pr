@@ -49,7 +49,7 @@ case ${origin_push} in
         repo=$(echo ${repo} | sed -e s,forks/,fork/,)
         url=https://pagure.io/${repo}/diff/master..${current_branch}
         ;;
-    *ssh://pkgs.fedoraproject.org/*)
+    *ssh://pkgs.fedoraproject.org/*|*ssh://walters@pkgs.fedoraproject.org/*)
         pushhost=pkgs.fedoraproject.org
         webhost=src.fedoraproject.org
 

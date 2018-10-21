@@ -155,6 +155,11 @@ else if test -n "$BASH_COMPLETION" && test -f /etc/bash_completion.d/git; then
 fi
 fi
 
+# https://github.com/euank/pazi/
+if command -v pazi &>/dev/null; then
+    eval "$(pazi init bash)"
+fi
+
 if $have_git_ps1; then
   PS1_PREFIX="$PS1_PREFIX"'$(__git_ps1 " [git %s]")'
 fi

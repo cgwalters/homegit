@@ -1,0 +1,3 @@
+#!/bin/bash
+set -euo pipefail
+exec oc adm release info --commits $(oc get clusterversion --template '{{ range .items }}{{ .status.current.payload }}{{ end }}')

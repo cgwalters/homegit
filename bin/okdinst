@@ -1,0 +1,46 @@
+#!/usr/bin/python3
+
+import os,sys,json,shutil,argparse,subprocess,re,collections
+import tempfile,hashlib,gzip
+
+def get_installer_config(basedir):
+    with open(os.path.join(basedir, 'config.json')) as f:
+        return json.load(f)
+
+def installer_exec(args, *instargs):
+    installer_env = get_installer_config(args.basedir)
+    installer_env['CLUSTER_NAME'] = args.name
+    installer_env['PULL_SECRET_PATH'] = os.path.join(args.basedir, 'pull-secret.json')
+    installer_env['SSH_PUB_KEY_PATH'] = os.path.join(args.basedir, 'ssh-pubkey')
+    env = dict(os.environ)
+    for (k,v) in installer_env.items():
+        env['OPENSHIFT_INSTALL_' + k] = v
+    instargs = ["openshift-install"] + list(instargs)
+    local_binpath = os.path.join(os.getcwd(), "bin/openshift-install")
+    if os.path.exists(local_binpath):
+        binpath = local_binpath
+    else:
+        binpath = instargs[0]
+    os.execvpe(binpath, instargs, env)
+
+def cmd_create(args):
+    clusterdir = os.path.join(args.basedir, args.name)
+    installer_exec(args, "create", "cluster", "--dir", clusterdir)
+
+def cmd_destroy(args):
+    clusterdir = os.path.join(args.basedir, args.name)
+    installer_exec(args, "destroy", "cluster", "--dir", clusterdir)
+    shutil.rmtree(clusterdir)
+
+# Parse args and dispatch
+parser = argparse.ArgumentParser()
+parser.add_argument("--basedir", default="/srv/walters/tmp/okdinst")
+parser.add_argument("--name", default="osiris")
+subparsers = parser.add_subparsers(dest='action')
+subparsers.required = True
+parser_create = subparsers.add_parser('create')
+parser_create.set_defaults(func=cmd_create)
+parser_destroy = subparsers.add_parser('destroy')
+parser_destroy.set_defaults(func=cmd_destroy)
+args = parser.parse_args()
+args.func(args)

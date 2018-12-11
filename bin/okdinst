@@ -13,6 +13,8 @@ def installer_exec(args, *instargs):
     installer_env['PULL_SECRET_PATH'] = os.path.join(args.basedir, 'pull-secret.json')
     installer_env['SSH_PUB_KEY_PATH'] = os.path.join(args.basedir, 'ssh-pubkey')
     env = dict(os.environ)
+    # https://github.com/openshift/installer/pull/785
+    env['TF_VAR_tectonic_libvirt_memory'] = '8192'
     for (k,v) in installer_env.items():
         env['OPENSHIFT_INSTALL_' + k] = v
     instargs = ["openshift-install"] + list(instargs)
@@ -21,7 +23,7 @@ def installer_exec(args, *instargs):
         binpath = local_binpath
     else:
         binpath = instargs[0]
-    os.execvpe(binpath, instargs, env)
+    subprocess.check_call(instargs, env=env)
 
 def cmd_create(args):
     clusterdir = os.path.join(args.basedir, args.name)

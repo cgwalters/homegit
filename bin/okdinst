@@ -1,43 +1,47 @@
 #!/usr/bin/python3
 
-import os,sys,json,shutil,argparse,subprocess,re,collections
+import os,sys,json,yaml,shutil,argparse,subprocess,re,collections
 import tempfile,hashlib,gzip
+
+CONFIGDIR = os.path.expanduser('~/.config/openshift-install')
+CLUSTERSDIR = os.path.join(CONFIGDIR, "clusters")
 
 def get_installer_config(basedir):
     with open(os.path.join(basedir, 'config.json')) as f:
         return json.load(f)
 
 def installer_exec(args, *instargs):
-    installer_env = get_installer_config(args.basedir)
+    os.makedirs(CLUSTERSDIR)
+    with open(os.path.join(CONFIGDIR, 'config.yaml')) as f:
+        installer_env = yaml.load(f)
     installer_env['CLUSTER_NAME'] = args.name
-    installer_env['PULL_SECRET_PATH'] = os.path.join(args.basedir, 'pull-secret.json')
-    installer_env['SSH_PUB_KEY_PATH'] = os.path.join(args.basedir, 'ssh-pubkey')
+    installer_env['PULL_SECRET_PATH'] = os.path.join(CONFIGDIR, 'pull-secret.json')
+    installer_env['SSH_PUB_KEY_PATH'] = os.path.join(CONFIGDIR, 'ssh-pubkey')
     env = dict(os.environ)
     # https://github.com/openshift/installer/pull/785
     env['TF_VAR_tectonic_libvirt_memory'] = '8192'
     for (k,v) in installer_env.items():
         env['OPENSHIFT_INSTALL_' + k] = v
-    instargs = ["openshift-install"] + list(instargs)
     local_binpath = os.path.join(os.getcwd(), "bin/openshift-install")
     if os.path.exists(local_binpath):
         binpath = local_binpath
     else:
         binpath = instargs[0]
+    instargs = [binpath] + list(instargs)
     subprocess.check_call(instargs, env=env)
 
 def cmd_create(args):
-    clusterdir = os.path.join(args.basedir, args.name)
+    clusterdir = os.path.join(CLUSTERSDIR, args.name)
     installer_exec(args, "create", "cluster", "--dir", clusterdir)
 
 def cmd_destroy(args):
-    clusterdir = os.path.join(args.basedir, args.name)
+    clusterdir = os.path.join(CLUSTERSDIR, args.name)
     installer_exec(args, "destroy", "cluster", "--dir", clusterdir)
     shutil.rmtree(clusterdir)
 
 # Parse args and dispatch
 parser = argparse.ArgumentParser()
-parser.add_argument("--basedir", default="/srv/walters/tmp/okdinst")
-parser.add_argument("--name", default="osiris")
+parser.add_argument("--name", required=True)
 subparsers = parser.add_subparsers(dest='action')
 subparsers.required = True
 parser_create = subparsers.add_parser('create')

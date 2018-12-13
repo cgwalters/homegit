@@ -1,5 +1,9 @@
 #!/usr/bin/python3
 
+# Wraps openshift-installer with a more opinionated workflow around
+# creating multiple clusters from a base template file.  See:
+# https://github.com/openshift/installer/blob/master/docs/user/tips-and-tricks.md
+
 import os,sys,json,yaml,shutil,argparse,subprocess,re,collections
 import tempfile,hashlib,gzip
 
@@ -65,9 +69,15 @@ def cmd_create(args):
     state = get_cluster_state(clusterdir)
     if state == 'in-destruction':
         sys.exit(f"Cluster {name} was queued for destruction; rerun `destroy` first")
+    elif state == 'created':
+        sys.exit(f"Cluster {name} is already created")
     target_config = os.path.join(clusterdir, 'install-config.yml')
     if not os.path.exists(target_config):
-        shutil.copy(BASECONFIG, target_config)
+        with open(BASECONFIG) as f:
+            config = yaml.load(f)
+        config['metadata']['name'] = name
+        with open(target_config, 'w') as f:
+            yaml.dump(config, f)
         write_cluster_state(clusterdir, 'creating')
     else:
         print(f"Resuming installation of cluster {name}")
@@ -78,13 +88,19 @@ def cmd_create(args):
 def cmd_destroy(args):
     name = args.name
     clusterdir = os.path.join(CLUSTERSDIR, name)
-    state = get_cluster_state()
+    state = get_cluster_state(clusterdir)
     if state is None:
         sys.exit(f"No such cluster {name}")
     else:
         print(f"Destroying cluster '{name}' in state {state}")
-    write_cluster_state('in-destruction')
-    run_installer("destroy", "cluster", "--dir", clusterdir)
+    write_cluster_state(clusterdir, 'in-destruction')
+    try:
+        run_installer("destroy", "cluster", "--dir", clusterdir)
+    except subprocess.CalledProcessError as e:
+        if args.force:
+            shutil.rmtree(clusterdir)
+        else:
+            raise
     shutil.rmtree(clusterdir)
 
 # Parse args and dispatch
@@ -95,6 +111,7 @@ subparsers.required = True
 parser_create = subparsers.add_parser('create')
 parser_create.set_defaults(func=cmd_create)
 parser_destroy = subparsers.add_parser('destroy')
+parser_destroy.add_argument("--force", action='store_true', help="Always remove cluster even if cleanup fails (may leak resources)")
 parser_destroy.set_defaults(func=cmd_destroy)
 args = parser.parse_args()
 args.func(args)

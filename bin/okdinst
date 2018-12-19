@@ -45,7 +45,7 @@ def ensure_base_config():
     tmpdir = os.path.join(CONFIGDIR, "tmp")
     ensure_empty_dir(tmpdir)
     run_installer('create', 'install-config', f'--dir={tmpdir}')
-    os.rename(os.path.join(tmpdir, "install-config.yml"), BASECONFIG)
+    os.rename(os.path.join(tmpdir, "install-config.yaml"), BASECONFIG)
     print(f"Generated base config: {BASECONFIG}")
 
 def get_cluster_state(clusterdir):

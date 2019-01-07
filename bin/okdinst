@@ -8,6 +8,7 @@ import os,sys,json,yaml,shutil,argparse,subprocess,re,collections
 import tempfile,hashlib,gzip
 
 CONFIGDIR = os.path.expanduser('~/.config/openshift-install')
+POSTSETUP = os.path.join(CONFIGDIR, "postsetup")
 BASECONFIG = os.path.join(CONFIGDIR, "config.yaml")
 CLUSTERSDIR = os.path.join(CONFIGDIR, "clusters")
 
@@ -94,6 +95,19 @@ def cmd_create(args):
         write_cluster_state(clusterdir, 'resuming')
     run_installer("create", "cluster", "--dir", clusterdir)
     write_cluster_state(clusterdir, 'created')
+    postsetup(name)
+    write_cluster_state(clusterdir, 'configured')
+
+def cmd_postsetup(args):
+    postsetup(args.name)
+
+def postsetup(name):
+    clusterdir = os.path.join(CLUSTERSDIR, name)
+    if os.path.isfile(POSTSETUP):
+        env = dict(os.environ)
+        env['KUBECONFIG'] = os.path.join(clusterdir, 'auth/kubeconfig')
+        print(f"Running post-setup: {POSTSETUP}")
+        subprocess.check_call([POSTSETUP], env=env)
 
 def cmd_destroy(args):
     name = args.name
@@ -148,6 +162,9 @@ parser_destroy = subparsers.add_parser('destroy')
 parser_destroy.add_argument("name")
 parser_destroy.add_argument("--force", action='store_true', help="Always remove cluster even if cleanup fails (may leak resources)")
 parser_destroy.set_defaults(func=cmd_destroy)
+parser_postsetup = subparsers.add_parser('postsetup')
+parser_postsetup.add_argument("name")
+parser_postsetup.set_defaults(func=cmd_postsetup)
 parser_list = subparsers.add_parser('list')
 parser_list.set_defaults(func=cmd_list)
 args = parser.parse_args()

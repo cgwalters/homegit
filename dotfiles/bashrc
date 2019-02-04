@@ -57,6 +57,9 @@ if test -z "${SSH_AUTH_SOCK:-}"; then
    export SSH_AUTH_SOCK=${XDG_RUNTIME_DIR}/keyring/ssh
 fi
 
+# ~/go is annoying
+export GOPATH="$HOME"
+
 HISTCONTROL=ignoreboth
 export HISTSIZE=5000
 shopt -s histappend

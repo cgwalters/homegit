@@ -47,8 +47,8 @@ podman_privshell() {
     podman_base --privileged -v ${XDG_RUNTIME_DIR}/keyring:${XDG_RUNTIME_DIR}/keyring \
                 -v /srv:/srv:rslave \
                 -v /run/libvirt:/run/libvirt \
-                -v /var/tmp:/var/tmp:rslave -v /srv/privcontainers/home:/home/walters \
-                -v /srv/privcontainers/roothome:/var/roothome \
+                -v /var/tmp:/var/tmp:rslave -v /srv/walters/containers/home:/home/walters \
+                -v /srv/walters/containers/roothome:/var/roothome \
                 ${img} "$@"
 }
 

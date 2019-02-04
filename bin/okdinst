@@ -36,7 +36,7 @@ def run_installer(*args):
         binpath = 'openshift-install'
     env = dict(os.environ)
     # https://github.com/openshift/installer/pull/785
-    env['TF_VAR_libvirt_master_memory'] = '8192'
+    env['TF_VAR_libvirt_master_memory'] = '5192'
     subprocess.check_call([binpath] + list(args), env=env)
 
 def ensure_base_config():
@@ -73,7 +73,7 @@ def cmd_create(args):
         sys.exit(f"Cluster {name} was queued for destruction; rerun `destroy` first")
     elif state == 'created':
         sys.exit(f"Cluster {name} is already created")
-    target_config = os.path.join(clusterdir, 'install-config.yml')
+    target_config = os.path.join(clusterdir, 'install-config.yaml')
     if not os.path.exists(target_config):
         with open(BASECONFIG) as f:
             config = yaml.load(f)
@@ -85,8 +85,8 @@ def cmd_create(args):
             libvirt['network']['if'] = ifname
             if args.libvirt_iprange:
                 libvirt['network']['ipRange'] = args.libvirt_iprange
-            elif len(clusters) > 0:
-                sys.exit("Already have a libvirt cluster defined, must specify --libvirt-iprange")
+            #elif len(clusters) > 0:
+            #    sys.exit("Already have a libvirt cluster defined, must specify --libvirt-iprange")
         with open(target_config, 'w') as f:
             yaml.dump(config, f)
         write_cluster_state(clusterdir, 'creating')

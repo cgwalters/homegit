@@ -9,7 +9,6 @@ import tempfile,hashlib,gzip
 
 CONFIGDIR = os.path.expanduser('~/.config/openshift-install')
 POSTSETUP = os.path.join(CONFIGDIR, "postsetup")
-BASECONFIG = os.path.join(CONFIGDIR, "config.yaml")
 CLUSTERSDIR = os.path.join(CONFIGDIR, "clusters")
 
 def get_installer_config(basedir):
@@ -28,27 +27,27 @@ def ensure_empty_dir(path):
     rm_rf(path)
     mkdir_p(path)
 
-def run_installer(*args):
+def run_installer(instargs, addenv={}):
     local_binpath = os.path.join(os.getcwd(), "bin/openshift-install")
     if os.path.exists(local_binpath):
         binpath = local_binpath
     else:
         binpath = 'openshift-install'
     env = dict(os.environ)
+    env.update(addenv)
     # https://github.com/openshift/installer/pull/785
-    env['TF_VAR_libvirt_master_memory'] = '16384'
+    env['TF_VAR_libvirt_master_memory'] = '8192'
     env['TF_VAR_libvirt_master_vcpu'] = '4'
-    subprocess.check_call([binpath] + list(args), env=env)
+    subprocess.check_call([binpath] + list(instargs), env=env)
 
-def ensure_base_config():
-    if os.path.isfile(BASECONFIG):
-        return
-    print("Generating base configuration")
+def ensure_base_config(name):
+    print(f"Generating {name}")
     tmpdir = os.path.join(CONFIGDIR, "tmp")
     ensure_empty_dir(tmpdir)
-    run_installer('create', 'install-config', f'--dir={tmpdir}')
-    os.rename(os.path.join(tmpdir, "install-config.yaml"), BASECONFIG)
-    print(f"Generated base config: {BASECONFIG}")
+    run_installer(['create', 'install-config', f'--dir={tmpdir}'])
+    target=os.path.join(CONFIGDIR, name)
+    os.rename(os.path.join(tmpdir, "install-config.yaml"), target)
+    print(f"Generated base config: {target}")
 
 def get_cluster_state(clusterdir):
     state_path = clusterdir + '/okdinst-state.json'
@@ -65,10 +64,8 @@ def write_cluster_state(clusterdir, state):
 
 def cmd_create(args):
     clusters = get_clusters()
-    ensure_base_config()
     name = args.name
     clusterdir = os.path.join(CLUSTERSDIR, name)
-    mkdir_p(clusterdir)
     state = get_cluster_state(clusterdir)
     if state == 'in-destruction':
         sys.exit(f"Cluster {name} was queued for destruction; rerun `destroy` first")
@@ -76,7 +73,15 @@ def cmd_create(args):
         sys.exit(f"Cluster {name} is already created")
     target_config = os.path.join(clusterdir, 'install-config.yaml')
     if not os.path.exists(target_config):
-        with open(BASECONFIG) as f:
+        src_config = args.config
+        if src_config is None:
+            src_config = os.path.join(CONFIGDIR, f'config-{args.platform}.yaml')
+            if not os.path.isfile(src_config):
+                ensure_base_config(src_config)
+        elif not os.path.isabs(src_config):
+            src_config = os.path.join(CONFIGDIR, src_config)
+        print(f"Using source config: {src_config}")
+        with open(src_config) as f:
             config = yaml.load(f)
         config['metadata']['name'] = name
         libvirt = config['platform'].get('libvirt')
@@ -88,13 +93,17 @@ def cmd_create(args):
                 libvirt['network']['ipRange'] = args.libvirt_iprange
             #elif len(clusters) > 0:
             #    sys.exit("Already have a libvirt cluster defined, must specify --libvirt-iprange")
+        mkdir_p(clusterdir)
         with open(target_config, 'w') as f:
             yaml.dump(config, f)
         write_cluster_state(clusterdir, 'creating')
     else:
         print(f"Resuming installation of cluster {name}")
         write_cluster_state(clusterdir, 'resuming')
-    run_installer("create", "cluster", "--dir", clusterdir)
+    addenv={}
+    if args.release_image is not None:
+        addenv['OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE'] = args.release_image
+    run_installer(["create", "cluster", "--dir", clusterdir], addenv=addenv)
     write_cluster_state(clusterdir, 'created')
     postsetup(name)
     write_cluster_state(clusterdir, 'configured')
@@ -120,7 +129,7 @@ def cmd_destroy(args):
         print(f"Destroying cluster '{name}' in state {state}")
     write_cluster_state(clusterdir, 'in-destruction')
     try:
-        run_installer("destroy", "cluster", "--dir", clusterdir)
+        run_installer(["destroy", "cluster", "--dir", clusterdir])
     except subprocess.CalledProcessError as e:
         if args.force:
             shutil.rmtree(clusterdir)
@@ -157,6 +166,9 @@ subparsers = parser.add_subparsers(dest='action')
 subparsers.required = True
 parser_create = subparsers.add_parser('create')
 parser_create.add_argument("name")
+parser_create.add_argument("--platform", action='store', choices=('aws', 'libvirt'), default='libvirt')
+parser_create.add_argument("--config", action='store')
+parser_create.add_argument("--release-image", action='store')
 parser_create.add_argument("--libvirt-iprange", action='store')
 parser_create.set_defaults(func=cmd_create)
 parser_destroy = subparsers.add_parser('destroy')

@@ -310,6 +310,10 @@ you should place your code here."
   (global-set-key (kbd "M-m o g") (lambda ()
                                     (interactive)
                                     (helm-grep-do-git-grep t)))
+  (global-set-key (kbd "M-m o f") (lambda ()
+                                    (interactive)
+                                    (helm-grep-do-git-grep nil)))
+
   )
 
 ;; Do not write anything past this comment. This is where Emacs will

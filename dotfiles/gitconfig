@@ -31,6 +31,8 @@
 [alias]
 	br = !git branch --sort=committerdate | tail -20
 [alias]
+	ck = !git checkout
+[alias]
 	rclean = !git clean -dfX && git submodule foreach git clean -dfX
 [alias]
 	rxclean = !git clean -dfx && git submodule foreach git clean -dfx

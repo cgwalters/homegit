@@ -14,6 +14,12 @@ if command -v pazi >/dev/null
     status --is-interactive; and pazi init fish | source
 end
 
+# For some reason in https://github.com/cgwalters/coretoolbox
+# umask is ending up as 077 which causes issues particularly
+# when using "sudo" as then root-owned files can't be read
+# by the user.
+umask 022
+
 set PATH $PATH /usr/sbin
 if test -d /srv/walters/bin
     set PATH $PATH /srv/walters/bin

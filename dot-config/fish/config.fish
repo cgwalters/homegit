@@ -14,6 +14,11 @@ if command -v pazi >/dev/null
     status --is-interactive; and pazi init fish | source
 end
 
+set PATH $PATH /usr/sbin
+if test -d /srv/walters/bin
+    set PATH $PATH /srv/walters/bin
+end
+
 if test -d /srv/walters/src
     set GOPATH (realpath /srv/walters)
     export GOPATH

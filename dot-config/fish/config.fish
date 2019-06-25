@@ -15,5 +15,5 @@ if command -v pazi >/dev/null
 end
 
 if test -d /srv/walters/src
-    set GOPATH (realpath /srv/walters/src)
+    set GOPATH (realpath /srv/walters)
 end

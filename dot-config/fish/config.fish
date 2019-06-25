@@ -16,4 +16,5 @@ end
 
 if test -d /srv/walters/src
     set GOPATH (realpath /srv/walters)
+    export GOPATH
 end

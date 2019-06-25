@@ -13,3 +13,7 @@ alias devshell='sudo runuser -u root -- podman run --net=host --rm -ti --privile
 if command -v pazi >/dev/null
     status --is-interactive; and pazi init fish | source
 end
+
+if test -d /srv/walters/src
+    set GOPATH (realpath /srv/walters/src)
+end

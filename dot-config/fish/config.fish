@@ -1,6 +1,8 @@
 alias g-am='git commit -a --amend --no-edit'
 alias g-amr='git commit -a --amend'
 alias make='chrt --idle 0 make -j (getconf _NPROCESSORS_ONLN)'
+alias fedpkg='chrt --idle 0 fedpkg'
+alias rhpkg='chrt --idle 0 rhpkg'
 # This is better than `sudo make install` in that
 # just like most package managers, it avoids running
 # the Makefile as root, which can cause problems with

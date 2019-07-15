@@ -21,8 +21,10 @@ end
 umask 022
 
 set PATH $PATH /usr/sbin
-if test -d /srv/walters/bin
-    set PATH $PATH /srv/walters/bin
+for d in /srv/walters/bin /srv/walters/pubannex/bin
+    if test -d $d
+        set PATH $d $PATH
+    end
 end
 
 if test -d /srv/walters/src

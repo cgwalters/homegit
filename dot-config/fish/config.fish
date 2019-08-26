@@ -12,6 +12,13 @@ alias mk-autoconf='./autogen.sh --prefix=/usr --libdir=/usr/lib64 --sysconfdir=/
 alias c='cp --reflink=auto'
 alias devshell='sudo runuser -u root -- podman run --net=host --rm -ti --privileged -v {$XDG_RUNTIME_DIR}/keyring:{$XDG_RUNTIME_DIR}/keyring -v /srv:/srv:rslave -v /run/libvirt:/run/libvirt:rslave -v /var/tmp:/var/tmp:rslave -v /srv/walters/containers/home:/home/walters -v /srv/walters/containers/roothome:/var/roothome'
 
+set PATH $PATH /usr/sbin
+for d in /srv/walters/bin /srv/walters/pubannex/bin
+    if test -d $d
+        set PATH $d $PATH
+    end
+end
+
 if command -v pazi >/dev/null
     status --is-interactive; and pazi init fish | source
 end
@@ -21,13 +28,6 @@ end
 # when using "sudo" as then root-owned files can't be read
 # by the user.
 umask 022
-
-set PATH $PATH /usr/sbin
-for d in /srv/walters/bin /srv/walters/pubannex/bin
-    if test -d $d
-        set PATH $d $PATH
-    end
-end
 
 if test -d /srv/walters/src
     set GOPATH (realpath /srv/walters)

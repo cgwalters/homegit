@@ -7,7 +7,13 @@ alias rhpkg='chrt --idle 0 rhpkg'
 # just like most package managers, it avoids running
 # the Makefile as root, which can cause problems with
 # things being *built* as root.
-alias makesudoinstall='make; and rm -rf _install; and make install DESTDIR=(pwd)/_install; and sudo rsync -rlv _install/ /; and rm -rf _install'
+function makesudoinstall 
+    make $argv; and \
+    rm -rf _install; and \
+    make install DESTDIR=(pwd)/_install $argv; and \
+    sudo rsync -rlv _install/ /; and \
+    rm -rf _install
+end
 alias mk-autoconf='./autogen.sh --prefix=/usr --libdir=/usr/lib64 --sysconfdir=/etc'
 alias c='cp --reflink=auto'
 alias devshell='sudo runuser -u root -- podman run --net=host --rm -ti --privileged -v {$XDG_RUNTIME_DIR}/keyring:{$XDG_RUNTIME_DIR}/keyring -v /srv:/srv:rslave -v /run/libvirt:/run/libvirt:rslave -v /var/tmp:/var/tmp:rslave -v /srv/walters/containers/home:/home/walters -v /srv/walters/containers/roothome:/var/roothome'

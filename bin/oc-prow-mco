@@ -1,0 +1,15 @@
+#!/bin/bash
+set -xeuo pipefail
+
+if [ -z "$1" ]; then
+  echo usage example: "$0 https://gcsweb-ci.apps.ci.l2s4.p1.openshiftapps.com/gcs/origin-ci-test/pr-logs/pull/openshift_machine-config-operator/1946/pull-ci-openshift-machine-config-operator-master-e2e-gcp-upgrade/1288850450333831168/artifacts/e2e-gcp-upgrade/"
+  exit 1
+fi
+
+baseurl=$1
+
+tmpdir=$(mktemp -d -t 'oc-prow-mco.XXXXXX')
+cd ${tmpdir}
+curl --show-error --fail -LO ${baseurl}/events.json
+jq '.items | map(select(.source.component == "machineconfigcontroller-nodecontroller" or .source.component == "machineconfigdaemon")) | sort_by(.firstTimestamp | fromdate) | map(.firstTimestamp + " " + .involvedObject.kind + " " + .involvedObject.name + ": " + .message)' <events.json
+  

@@ -11,5 +11,5 @@ baseurl=$1
 tmpdir=$(mktemp -d -t 'oc-prow-mco.XXXXXX')
 cd ${tmpdir}
 curl --show-error --fail -LO ${baseurl}/events.json
-jq '.items | map(select(.source.component == "machineconfigcontroller-nodecontroller" or .source.component == "machineconfigdaemon")) | sort_by(.firstTimestamp | fromdate) | map(.firstTimestamp + " " + .involvedObject.kind + " " + .involvedObject.name + ": " + .message)' <events.json
+jq '.items | map(select(.source.component == "machineconfigcontroller-nodecontroller" or .source.component == "machineconfigdaemon")) | sort_by(.firstTimestamp | fromdate) | map(.firstTimestamp + " " + .reason + " " + .involvedObject.kind + " " + .involvedObject.name + ": " + .message)' <events.json
   

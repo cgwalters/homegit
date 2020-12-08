@@ -19,7 +19,7 @@ alias c='cp --reflink=auto'
 alias devshell='sudo runuser -u root -- podman run --net=host --rm -ti --privileged -v {$XDG_RUNTIME_DIR}/keyring:{$XDG_RUNTIME_DIR}/keyring -v /srv:/srv:rslave -v /run/libvirt:/run/libvirt:rslave -v /var/tmp:/var/tmp:rslave -v /srv/walters/containers/home:/home/walters -v /srv/walters/containers/roothome:/var/roothome'
 
 set PATH $PATH /usr/sbin
-for d in /srv/walters/bin /srv/walters/pubannex/bin
+for d in $HOME/.local/bin
     if test -d $d
         set PATH $d $PATH
     end

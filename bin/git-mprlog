@@ -1,0 +1,16 @@
+#!/bin/bash
+# GH should really have a better UI for multi-commit PRs.  This
+# allows pasting the commit descriptions into the comment with
+# a --- Markdown separator which will render as a horizontal line.
+set -euo pipefail
+base=${1:-}
+if test -z "${base}"; then
+  base=origin/main
+  if ! git rev-parse ${base}&>/dev/null; then
+    base=origin/master
+  fi
+fi
+git log --reverse --format="%B%n---%n" ${base}.. | xsel -i -b
+echo "Copied commits to clipboard"
+
+

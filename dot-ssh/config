@@ -17,6 +17,11 @@ Host !*.redhat.com
 Host github.com
      KexAlgorithms curve25519-sha256@libssh.org,diffie-hellman-group-exchange-sha256,diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1
 
+# https://stribika.github.io/2015/01/04/secure-secure-shell.html
+Host rh.gitlab.com
+     Hostname gitlab.com
+     IdentityFile ~/.ssh/id_2021-rh-gitlab
+
 Host bastion.fedoraproject.org
      User walters
      ProxyCommand none

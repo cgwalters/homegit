@@ -6,6 +6,8 @@
 	browser = firefox3
 [url "ssh://git@gitlab.gnome.org/GNOME/"]
 	insteadof = gnome:
+[url "https://github.com/"]
+	insteadof = github-ro:
 [url "ssh://git@github.com/"]
 	insteadof = github:
 [url "ssh://walters@git.freedesktop.org/git/"]

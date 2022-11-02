@@ -12,6 +12,9 @@ if test "$TERM_PROGRAM" = vscode
     export EDITOR
 end
 
+# We want to opt in to this
+export CARGO_INCREMENTAL=1
+
 set PATH $PATH /usr/sbin
 for d in $HOME/.local/bin
     if test -d $d

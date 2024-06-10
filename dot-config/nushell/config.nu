@@ -17,3 +17,8 @@ $env.PROMPT_COMMAND = {|| create_left_prompt }
 $env.config = {
     show_banner: false
 }
+
+# Default to podman-machine if we're in a toolbox
+if "TOOLBOX_PATH" in $env {
+    $env.CONTAINER_CONNECTION = "podman-machine-default-root"
+}

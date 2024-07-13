@@ -1,17 +1,17 @@
-#!/bin/sh
-
+#!/usr/bin/env nu
 # Copy the output of "git format-patch" into the X clipboard
-# Copyright 2010 Colin Walters <walters@verbum.org>
+# Copyright 2024 Colin Walters <walters@verbum.org>
 # Licensed under the new-BSD license (http://www.opensource.org/licenses/bsd-license.php)
 
-set -e
-
-tmpfile=$(mktemp)
-git format-patch --stdout "$@" >${tmpfile} || (rm -f ${tmpfile}; exit 1)
-if [ -s ${tmpfile} ]; then
-  xsel -i -b < ${tmpfile}
-  echo "Copied patch into X clipboard"
-else
-  echo "Nothing to paste; specify a range (or e.g. use -1 for HEAD)"
-fi
-rm -f ${tmpfile}
+def main [branch?: string] {
+  mut branchval = $branch
+  if $branchval == null {
+    $branchval = "origin/main"
+  }
+  let buf = git format-patch --stdout $branchval
+  if $env.DARWIN? != null {
+    $buf | pbcopy
+  } else {
+    $buf | xsel -i -b
+  }
+}

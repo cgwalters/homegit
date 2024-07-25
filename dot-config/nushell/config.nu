@@ -1,6 +1,7 @@
 $env.PATH = ($env.PATH | prepend $"($env.HOME)/.local/bin")
 
 def create_left_prompt [] {
+    let last_err = (if ($env.LAST_EXIT_CODE) != 0 { $"(ansi red_bold)<($env.LAST_EXIT_CODE)>(ansi reset) " } else { "" })
     let dir = match (do --ignore-shell-errors { $env.PWD | path relative-to $nu.home-path }) {
         null => $env.PWD
         '' => '~'
@@ -12,7 +13,7 @@ def create_left_prompt [] {
     let path_segment = $"($path_color)($dir)"
     let hostname = (hostname)
 
-    $"(hostname) ($path_segment)" | str replace --all (char path_sep) $"($separator_color)(char path_sep)($path_color)"
+    $"($last_err)(hostname) ($path_segment)" | str replace --all (char path_sep) $"($separator_color)(char path_sep)($path_color)"
 }
 
 $env.PROMPT_COMMAND = {|| create_left_prompt }

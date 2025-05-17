@@ -45,3 +45,8 @@
 	yolo = !git push --force-with-lease
 [core]
 	excludesfile = /home/walters/.gitignore
+[diff]
+	algorithm = histogram
+	colorMoved = plain
+	mnemonicPrefix = true
+	renames = true

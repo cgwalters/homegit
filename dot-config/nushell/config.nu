@@ -21,7 +21,5 @@ $env.config = {
     show_banner: false
 }
 
-# Default to podman-machine if we're in a toolbox
-if "TOOLBOX_PATH" in $env {
-    $env.CONTAINER_CONNECTION = "podman-machine-default-root"
-}
+# Unfortunately nushell aliases can't be conditional
+alias ph = flatpak-spawn --host podman

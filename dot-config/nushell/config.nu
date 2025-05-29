@@ -2,7 +2,7 @@ $env.PATH = ($env.PATH | prepend $"($env.HOME)/.local/bin")
 
 def create_left_prompt [] {
     let last_err = (if ($env.LAST_EXIT_CODE) != 0 { $"(ansi red_bold)<($env.LAST_EXIT_CODE)>(ansi reset) " } else { "" })
-    let dir = match (do --ignore-shell-errors { $env.PWD | path relative-to $nu.home-path }) {
+    let dir = match (do --ignore-errors { $env.PWD | path relative-to $nu.home-path }) {
         null => $env.PWD
         '' => '~'
         $relative_pwd => ([~ $relative_pwd] | path join)

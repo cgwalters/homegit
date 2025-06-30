@@ -21,7 +21,7 @@ def create_left_prompt [] {
     let path_segment = $"($path_color)($dir)"
     let hostname = (hostname)
     let container_image = (containerenv-image)
-    let container_image_status = if container_image != "" {
+    let container_image_status = if $container_image != "" {
         $"\(($container_image)\)"
     } else {
         ""

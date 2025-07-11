@@ -37,3 +37,7 @@ $env.config = {
 
 # Unfortunately nushell aliases can't be conditional
 alias ph = flatpak-spawn --host podman
+
+if "CURSOR_TRACE_ID" in $env {
+    $env.EDITOR = "cursor --wait"
+}

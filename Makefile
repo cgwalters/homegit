@@ -8,7 +8,3 @@ install-bin:
 
 install-dotfiles:
 	./install-dotfiles.sh
-
-install-config:
-	./install-config.sh
-

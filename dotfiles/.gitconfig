@@ -50,3 +50,24 @@
 	colorMoved = plain
 	mnemonicPrefix = true
 	renames = true
+[safe]
+	directory = /run/host/var/home/ai/src/aipproval-forge
+	directory = /run/host/var/home/ai/
+	directory = /run/host/var/home/ai/src/infra/
+	directory = /run/host/var/home/ai/src/github/bootc-dev/infra
+	directory = /run/host/var/home/ai/src/github/bootc-dev/ci-sandbox
+	directory = /run/host/var/home/ai/src/github/bootc-dev/bootc
+	directory = /run/host/var/home/ai/src/github/bootc-dev/bootc/.git
+	directory = /run/host/var/home/ai/src/github/bootc-dev/bcvk/.git
+	directory = /run/host/var/home/ai/src/github/ambient-code/platform
+	directory = /run/host/var/home/ai/src/github/cgwalters/cstor-rs
+	directory = /run/host/var/home/ai/src/github/cgwalters/devc
+[credential "https://github.com"]
+	helper = 
+	helper = !/usr/bin/gh auth git-credential
+[credential "https://gist.github.com"]
+	helper = 
+	helper = !/usr/bin/gh auth git-credential
+[credential "https://gitlab.com"]
+	helper = 
+	helper = !/usr/bin/glab auth git-credential

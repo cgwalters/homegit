@@ -26,32 +26,6 @@ alias rhpkg='chrt --idle 0 rhpkg'
 # https://unix.stackexchange.com/questions/79684/fix-terminal-after-displaying-a-binary-file
 alias reset='/usr/bin/reset; stty sane; tput rs1; clear; echo -e "\033c"'
 
-alias vagrant='env -u SSH_AUTH_SOCK vagrant'
-alias vssh='vagrant up && vagrant ssh'
-alias vrssh='vagrant up && vagrant ssh -c "sudo su -"'
-
-alias bwraphost='bwrap --unshare-all --bind / / --dev /dev --proc /proc'
-
-podman_base() {
-    sudo runuser -u root -- podman run --net=host --rm -ti "$@"
-}
-podman_shell() {
-    img=$1
-    shift
-    podman_base ${img} "$@"
-}
-podman_privshell() {
-    img=$1
-    shift
-    id=$(id -u)
-    podman_base --privileged -v ${XDG_RUNTIME_DIR}/keyring:${XDG_RUNTIME_DIR}/keyring \
-                -v /srv:/srv:rslave \
-                -v /run/libvirt:/run/libvirt \
-                -v /var/tmp:/var/tmp:rslave -v /srv/walters/containers/home:/home/walters \
-                -v /srv/walters/containers/roothome:/var/roothome \
-                ${img} "$@"
-}
-
 export PATH="$HOME/.local/bin:$PATH"
 if test -z "${SSH_AUTH_SOCK:-}"; then
    export SSH_AUTH_SOCK=${XDG_RUNTIME_DIR}/keyring/ssh
@@ -169,3 +143,8 @@ fi
 
 PS1="$PS1_PREFIX"'\n\$ '
 export PS1
+
+
+# Keep in sync with env.nu
+export GOOGLE_CLOUD_PROJECT="itpc-gcp-core-pe-eng-claude"
+export VERTEX_LOCATION="global"

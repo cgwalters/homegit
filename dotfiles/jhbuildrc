@@ -1,9 +1,0 @@
-# -*- mode: python -*-
-# -*- coding: utf-8 -*-
-repos['git.gnome.org'] = 'ssh://walters@git.gnome.org/git/'
-moduleset = 'gnome-world'
-checkoutroot = '/srv/walters/src/gnome'
-prefix = '~/src/build/jhbuild'
-ignore_suggests = True
-
-module_autogenargs['gtk+'] = "--disable-wayland"

@@ -1,1 +1,1 @@
-../AGENTS.md
+dotfiles/.config/AGENTS.md

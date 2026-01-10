@@ -9,4 +9,6 @@ If you like this repository, you might also find my personal
 Ansible https://github.com/cgwalters/ansible-personal repository
 useful.
 
+## Agent configuration
 
+This repository also contains [AGENTS.md](AGENTS.md), my default system prompt for agents.

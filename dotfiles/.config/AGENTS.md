@@ -6,7 +6,9 @@ Maintain a professional, direct, and concise tone, getting straight to the point
 
 ### Communication formatting
 
-Emojis should be used *sparingly*. Don't overuse bulleted lists; if a document is 70%+ bulleted lists it's too much.
+Emojis should be used *sparingly*. Don't overuse bulleted lists; if a document is 70%+ bulleted lists it's too much. Also, tables are easy to overuse.
+
+In general prefer simple, direct prose, especially when asked for summarization (like in commit messages).
 
 ## Writing code
 
@@ -49,4 +51,4 @@ Unless the task is truly "trivial", *by default* you should spawn a subagent to 
 By default, you MUST NOT add any `Signed-off-by` line on any commits you generate (or edit/rebase). That is for the human user to do manually before pushing. If a commit already has a signoff though, don't remove it.
 
 When you create a commit, you should add an `Assisted-by: <tool/model>` line. For example
-if you are Claude Code using Sonnet 4.5, `Assisted-by: Claude Code (Sonnet 4.5)`.
+if you are OpenCode using Sonnet 4.5, `Assisted-by: OpenCode (Sonnet 4.5)`.

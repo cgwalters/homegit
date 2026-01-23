@@ -19,6 +19,7 @@ def create_left_prompt [] {
     let path_color = (if (is-admin) { ansi red_bold } else { ansi green_bold })
     let separator_color = (if (is-admin) { ansi light_red_bold } else { ansi light_green_bold })
     let path_segment = $"($path_color)($dir)"
+    let username = (whoami)
     let hostname = (hostname)
     let container_image = (containerenv-image)
     let container_image_status = if $container_image != "" {
@@ -27,7 +28,7 @@ def create_left_prompt [] {
         ""
     }
 
-    $"($last_err)(hostname)($container_image_status) ($path_segment)" | str replace --all (char path_sep) $"($separator_color)(char path_sep)($path_color)"
+    $"($last_err)($username)@($hostname)($container_image_status) ($path_segment)" | str replace --all (char path_sep) $"($separator_color)(char path_sep)($path_color)"
 }
 
 $env.PROMPT_COMMAND = {|| create_left_prompt }

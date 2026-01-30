@@ -110,11 +110,11 @@ _format_ctx () {
                 osid=$(hostname -s)
             fi
             local privprefix=
-            if capsh --print |grep -qEe '^Current.*cap_sys_admin'; then
+            if command -v capsh &>/dev/null && capsh --print 2>/dev/null | grep -qEe '^Current.*cap_sys_admin'; then
                 privprefix="${bold:-}priv${normal:-}"
             fi
-            local user=${USER}
-            if test ${user} = root; then
+            local user="${USER:-$(id -un)}"
+            if test "${user}" = root; then
                 user="${bold:-}${user}${normal:-}"
             fi
             echo -n "${privprefix}container:${user}@${osid} "
@@ -124,12 +124,16 @@ _format_ctx () {
 
 PS1_PREFIX='$(_format_last_err)$(_format_ctx)$(_format_wd)'
 
+have_git_ps1=false
 if test -f /usr/share/git-core/contrib/completion/git-prompt.sh; then
   source /usr/share/git-core/contrib/completion/git-prompt.sh
   have_git_ps1=true
-else if test -n "$BASH_COMPLETION" && test -f /etc/bash_completion.d/git; then
+elif test -f /usr/lib/git-core/git-sh-prompt; then
+  # Debian/Ubuntu location
+  source /usr/lib/git-core/git-sh-prompt
   have_git_ps1=true
-fi
+elif test -n "$BASH_COMPLETION" && test -f /etc/bash_completion.d/git; then
+  have_git_ps1=true
 fi
 
 # https://github.com/euank/pazi/

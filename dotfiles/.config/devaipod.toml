@@ -1,0 +1,19 @@
+[dotfiles]
+url = "https://github.com/cgwalters/homegit"
+script = "install-dotfiles.sh"
+
+# These are needed by the agent
+[env.vars]
+VERTEX_LOCATION = "global"
+GOOGLE_CLOUD_PROJECT = "itpc-gcp-core-pe-eng-claude"
+
+# Pass GH_TOKEN to service-gator via podman secrets (more secure than env vars)
+# Create secret with: cat ~/.config/gh-full | podman secret create gh_token -
+[trusted]
+secrets = ["GH_TOKEN=gh_token"]
+
+# Files from $HOME to copy into containers (read-only for agent)
+[bind_home]
+paths = [
+    ".config/gcloud/application_default_credentials.json",
+]

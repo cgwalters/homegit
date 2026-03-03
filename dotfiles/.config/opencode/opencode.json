@@ -3,5 +3,6 @@
   "model": "google-vertex-anthropic/claude-opus-4-6@default",
   "autoupdate": false,
   "permission": "allow",
-  "snapshot": false
+  "snapshot": false,
+  "lsp": false
 }

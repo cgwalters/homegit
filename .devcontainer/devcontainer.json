@@ -15,6 +15,9 @@
   "runArgs": [
     "--privileged"
   ],
+  "postCreateCommand": {
+    "devenv-init": "sudo /usr/local/bin/devenv-init.sh"
+  },
   "remoteEnv": {
     "PATH": "${containerEnv:PATH}:/usr/local/cargo/bin"
   }

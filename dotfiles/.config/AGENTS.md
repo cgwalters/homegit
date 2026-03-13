@@ -42,6 +42,20 @@ Write issue titles that are concise and clearly describe the problem or enhancem
 
 ## Commit Messages
 
+Write clear and descriptive commit messages using the conventional commit format, such as `kernel: Add find API w/correct hyphen-dash equality, add docs`. Use imperative mood: "Add integration with..." not "Adds integration with...".
+
+The body must focus on **why**, not what. The reader can see "what" from the diff — the commit message should explain the motivation, the reasoning, or what problem is being solved. For "prep" commits, a single line in the body "Prep for handling X later." is perfectly fine (the subject has the what).
+
+Keep it natural and concise. A few sentences of prose explaining the design intent or the high-level data flow is often good enough. If there's a non-obvious consequence of the change, call it out briefly (e.g. "Note the manifest becomes part of the GC root") rather than explaining the full mechanism. Think about what a reviewer needs to know that may not be obvious from a skim of the code.
+
+Specifically avoid:
+- Restating what the diff already shows (e.g. "Changed function X to call Y instead of Z")
+- Generic `Changes:` sections with bulleted lists of implementation details
+- "Files changed" sections — completely redundant with git
+- Overly formal or robotic tone; write like a human talking to another developer
+
+## Commit Messages
+
 Write clear and descriptive commit messages using the conventional commit format, such as `kernel: Add find API w/correct hyphen-dash equality, add docs`. The commit body must explain the "why" behind the change, provide necessary context, and link to relevant issues.
 
 The commit should be in the "imperative mood". Use e.g. "Add integration with..." not "Adds integration with...".

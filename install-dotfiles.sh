@@ -1,4 +1,2 @@
-#!/usr/bin/bash
-set -euo pipefail
-
-rsync -rlv dotfiles/ ~
+#!/bin/sh
+exec rsync -rlv dotfiles/ ~

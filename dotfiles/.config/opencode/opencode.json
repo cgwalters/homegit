@@ -5,5 +5,6 @@
   "autoupdate": false,
   "permission": "allow",
   "snapshot": false,
-  "lsp": false
+  "lsp": false,
+  "plugin": ["superpowers@git+https://github.com/obra/superpowers.git#917e5f53b16b115b70a3a355ed5f4993b9f8b73d"]
 }

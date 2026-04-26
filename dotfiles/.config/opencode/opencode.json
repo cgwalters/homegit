@@ -1,10 +1,57 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "google-vertex-anthropic/claude-opus-4-6@default",
+  "model": "google-vertex-anthropic/claude-sonnet-4-6@default",
   "formatter": false,
   "autoupdate": false,
   "permission": "allow",
   "snapshot": false,
   "lsp": false,
-  "plugin": ["superpowers@git+https://github.com/obra/superpowers.git#917e5f53b16b115b70a3a355ed5f4993b9f8b73d"]
+  "plugin": ["superpowers@git+https://github.com/obra/superpowers.git#917e5f53b16b115b70a3a355ed5f4993b9f8b73d"],
+  "agent": {
+    "build": {
+      "prompt": "For non-trivial tasks, first use @architect-c or @architect-g to draft an implementation plan or sketch, then dispatch @general-c or @general-g subagents to implement and verify the result. Have another subagent review the work before considering the task complete."
+    },
+    "plan": {
+      "model": "google-vertex-anthropic/claude-opus-4-6@default"
+    },
+    "general": {
+      "description": "General-purpose subagent for multi-step tasks.",
+      "mode": "subagent"
+    },
+    "explore": {
+      "description": "Fast read-only codebase exploration.",
+      "mode": "subagent",
+      "model": "google-vertex/gemini-3-flash-preview"
+    },
+    "compaction": {
+      "model": "google-vertex-anthropic/claude-opus-4-6@default"
+    },
+    "title": {
+      "model": "google-vertex/gemini-3-flash-preview"
+    },
+    "summary": {
+      "model": "google-vertex/gemini-3-flash-preview"
+    },
+    "general-c": {
+      "description": "General-purpose subagent (Sonnet). Similarly capable to @general-g; for important tasks, ask both and aim for consensus, or have one review the other's output.",
+      "mode": "subagent"
+    },
+    "general-g": {
+      "description": "General-purpose subagent (Gemini Flash). Similarly capable to @general-c; for important tasks, ask both and aim for consensus, or have one review the other's output.",
+      "mode": "subagent",
+      "model": "google-vertex/gemini-3-flash-preview"
+    },
+    "architect-c": {
+      "description": "Architect for hard problems: planning, design, complex debugging, architectural decisions, tricky refactors. Also consider asking @architect-g and aiming for consensus.",
+      "mode": "subagent",
+      "model": "google-vertex-anthropic/claude-opus-4-6@default",
+      "color": "warning"
+    },
+    "architect-g": {
+      "description": "Architect for hard problems: planning, design, complex debugging, architectural decisions, tricky refactors. Also consider asking @architect-c and aiming for consensus.",
+      "mode": "subagent",
+      "model": "google-vertex/gemini-3.1-pro-preview",
+      "color": "#4285f4"
+    }
+  }
 }

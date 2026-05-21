@@ -152,3 +152,4 @@ export PS1
 # Keep in sync with env.nu
 export GOOGLE_CLOUD_PROJECT="itpc-gcp-core-pe-eng-claude"
 export VERTEX_LOCATION="global"
+export GOOGLE_CLOUD_LOCATION="global"

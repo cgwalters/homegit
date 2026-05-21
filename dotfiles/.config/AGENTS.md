@@ -19,7 +19,7 @@ If you are generating large amounts of text (such as for a lengthy bug report, d
 Write clean, idiomatic code. Avoid lots of duplicate code; e.g. in unit tests, "data driven" tests can be much more concise and understandable. Ensure robust error handling with informative, user-helpful messages, and proactively handle edge cases. Adhere to established style conventions like `rustfmt`, and use constants for "magic" strings or numbers.
 
 - **Avoid AI slop**: DO NOT do things like generate random new toplevel markdown files. Tracking your work should go in a mixture of the git commit log or documentation for existing code.
-- **Clean Commit History**: Strive for a clean, readable git history. Separate logical changes into distinct commits, each with a clear message. Where applicable, try to create "prep" commits that could be merged separately.
+- **Clean Commit History**: Strive for a clean, readable git history. Separate logical changes into distinct commits, each with a clear message. Where applicable, try to create "prep" commits that could be merged separately. Before declaring a commit task done, run `git diff HEAD~1..HEAD` to verify no unintended files or hunks were staged.
 - **Integration**: Try to ensure your changes "fit in". Prefer to fix/extend existing docs or code instead of generating new.
 - **User-Centric Output**: Design CLI output with the user experience in mind. Avoid overwhelming users with debug-level information by default; instead, provide concise, useful information and hide verbose output behind flags like `--verbose`.
 - **No Binary Bloat**: Avoid committing large binary files or compiled artifacts to the source repository. If a binary is necessary for testing, it should be fetched from a release or other external source, not stored in git.
@@ -45,6 +45,8 @@ Specifically avoid:
 
 If a particular project has requirements as described in its contributing docs (such as using strict "conventional commit" style) follow that.
 
+When addressing PR review feedback, always squash fixes into the relevant prior commit using `git commit --fixup=<sha>` + `git rebase --autosquash`. Never leave "Address review feedback" as a standalone commit.
+
 ## Agent workflow and self-check
 
 Unless the task is truly "trivial", *by default* you should spawn a subagent to do the task, and another subagent to review the first's work; you are coordinating their work.
@@ -58,13 +60,7 @@ When coordinating subagents:
 
 ### Self-Verification Protocol
 
-Before claiming any task complete, personally verify:
-- [ ] The solution addresses the original requirement completely
-- [ ] All tests pass (both existing and newly written)
-- [ ] Code follows project style guidelines without exceptions
-- [ ] No unintended side effects or regressions were introduced
-- [ ] Documentation accurately reflects any changes made
-- [ ] The implementation handles edge cases and error conditions appropriately
+Before declaring a non-trivial task complete, load the `commit-review` skill and run through its checklist.
 
 ### Failure Handling
 

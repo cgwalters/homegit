@@ -1,18 +1,35 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "google-vertex-anthropic/claude-sonnet-4-6@default",
+  "model": "anthropic/claude-sonnet-4-6",
   "formatter": false,
   "autoupdate": false,
   "permission": "allow",
   "snapshot": false,
   "lsp": false,
-  "plugin": ["superpowers@git+https://github.com/obra/superpowers.git#917e5f53b16b115b70a3a355ed5f4993b9f8b73d"],
+  "provider": {
+    "anthropic": {
+      "models": {
+        // Claude Code limits sonnet to 200k by default; mirrors that behavior
+        // Opus 4.8 (planning/architect) gets 500k — wider context is useful there
+        "claude-sonnet-4-6": { "limit": { "context": 200000, "output": 128000 } },
+        "claude-opus-4-8": { "limit": { "context": 500000, "output": 128000 } }
+      }
+    },
+    "google-vertex": {
+      "models": {
+        // Flash is an execution model — cap at 200k
+        "gemini-3.5-flash": { "limit": { "context": 200000, "output": 65536 } },
+        // Pro is a planning model — cap at 500k
+        "gemini-3.1-pro-preview": { "limit": { "context": 500000, "output": 65536 } }
+      }
+    }
+  },
   "agent": {
     "build": {
       "prompt": "For non-trivial tasks, first use @architect-c or @architect-g to draft an implementation plan or sketch, then dispatch @general-c or @general-g subagents to implement and verify the result. Have another subagent review the work before considering the task complete."
     },
     "plan": {
-      "model": "google-vertex-anthropic/claude-opus-4-6@default"
+      "model": "anthropic/claude-opus-4-8"
     },
     "general": {
       "description": "General-purpose subagent for multi-step tasks.",
@@ -21,30 +38,31 @@
     "explore": {
       "description": "Fast read-only codebase exploration.",
       "mode": "subagent",
-      "model": "google-vertex/gemini-3-flash-preview"
+      "model": "google-vertex/gemini-3.5-flash"
     },
     "compaction": {
-      "model": "google-vertex-anthropic/claude-opus-4-6@default"
+      "model": "anthropic/claude-opus-4-8"
     },
     "title": {
-      "model": "google-vertex/gemini-3-flash-preview"
+      "model": "google-vertex/gemini-3.5-flash"
     },
     "summary": {
-      "model": "google-vertex/gemini-3-flash-preview"
+      "model": "google-vertex/gemini-3.5-flash"
     },
     "general-c": {
-      "description": "General-purpose subagent (Sonnet). Similarly capable to @general-g; for important tasks, ask both and aim for consensus, or have one review the other's output.",
-      "mode": "subagent"
+      "description": "General-purpose subagent (Sonnet); can pair with @general-g for review/consensus",
+      "mode": "subagent",
+      "model": "anthropic/claude-sonnet-4-6",
     },
     "general-g": {
-      "description": "General-purpose subagent (Gemini Flash). Similarly capable to @general-c; for important tasks, ask both and aim for consensus, or have one review the other's output.",
+      "description": "General-purpose subagent (Gemini Flash); can pair with @general-c for review/consensus.",
       "mode": "subagent",
-      "model": "google-vertex/gemini-3-flash-preview"
+      "model": "google-vertex/gemini-3.5-flash"
     },
     "architect-c": {
       "description": "Architect for hard problems: planning, design, complex debugging, architectural decisions, tricky refactors. Also consider asking @architect-g and aiming for consensus.",
       "mode": "subagent",
-      "model": "google-vertex-anthropic/claude-opus-4-6@default",
+      "model": "anthropic/claude-opus-4-8",
       "color": "warning"
     },
     "architect-g": {

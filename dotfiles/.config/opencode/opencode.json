@@ -1,6 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "anthropic/claude-sonnet-4-6",
+  "model": "google-vertex/claude-sonnet-5@default",
   "formatter": false,
   "autoupdate": false,
   "permission": "allow",
@@ -9,14 +9,16 @@
   "provider": {
     "anthropic": {
       "models": {
-        // Claude Code limits sonnet to 200k by default; mirrors that behavior
-        // Opus 4.8 (planning/architect) gets 500k — wider context is useful there
-        "claude-sonnet-4-6": { "limit": { "context": 200000, "output": 128000 } },
+        // Opus 4.8 via Anthropic direct — 500k context for heavy planning
         "claude-opus-4-8": { "limit": { "context": 500000, "output": 128000 } }
       }
     },
     "google-vertex": {
       "models": {
+        // Sonnet 5 — cap at 200k, mirrors Claude Code defaults
+        "claude-sonnet-5@default": { "limit": { "context": 200000, "output": 128000 } },
+        // Opus 4.6 via Vertex — 500k for architect workloads
+        "claude-opus-4-6@default": { "limit": { "context": 500000, "output": 128000 } },
         // Flash is an execution model — cap at 200k
         "gemini-3.5-flash": { "limit": { "context": 200000, "output": 65536 } },
         // Pro is a planning model — cap at 500k
@@ -41,7 +43,7 @@
       "model": "google-vertex/gemini-3.5-flash"
     },
     "compaction": {
-      "model": "anthropic/claude-opus-4-8"
+      "model": "google-vertex/claude-sonnet-5@default"
     },
     "title": {
       "model": "google-vertex/gemini-3.5-flash"
@@ -52,14 +54,20 @@
     "general-c": {
       "description": "General-purpose subagent (Sonnet); can pair with @general-g for review/consensus",
       "mode": "subagent",
-      "model": "anthropic/claude-sonnet-4-6",
+      "model": "google-vertex/claude-sonnet-5@default",
     },
     "general-g": {
       "description": "General-purpose subagent (Gemini Flash); can pair with @general-c for review/consensus.",
       "mode": "subagent",
       "model": "google-vertex/gemini-3.5-flash"
     },
-    "architect-c": {
+    "architect-c46": {
+      "description": "Architect for hard problems: planning, design, complex debugging, architectural decisions, tricky refactors. Also consider asking @architect-g and aiming for consensus.",
+      "mode": "subagent",
+      "model": "google-vertex/claude-opus-4-6@default",
+      "color": "warning"
+    },
+    "architect-c48": {
       "description": "Architect for hard problems: planning, design, complex debugging, architectural decisions, tricky refactors. Also consider asking @architect-g and aiming for consensus.",
       "mode": "subagent",
       "model": "anthropic/claude-opus-4-8",

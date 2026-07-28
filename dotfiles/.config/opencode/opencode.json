@@ -21,6 +21,8 @@
         "claude-opus-4-6@default": { "limit": { "context": 500000, "output": 128000 } },
         // Flash is an execution model — cap at 200k
         "gemini-3.6-flash": { "limit": { "context": 200000, "output": 65536 } },
+        // Flash-Lite — cheap/fast execution model, same caps as Flash
+        "gemini-3.5-flash-lite": { "limit": { "context": 200000, "output": 65536 } },
         // Pro is a planning model — cap at 500k
         "gemini-3.1-pro-preview": { "limit": { "context": 500000, "output": 65536 } }
       }
@@ -41,6 +43,11 @@
       "description": "Fast read-only codebase exploration.",
       "mode": "subagent",
       "model": "google-vertex/gemini-3.6-flash"
+    },
+    "flash": {
+      "description": "Cheap/fast subagent for simple, low-stakes tasks using Gemini Flash-Lite.",
+      "mode": "subagent",
+      "model": "google-vertex/gemini-3.5-flash-lite"
     },
     "compaction": {
       "model": "google-vertex/claude-sonnet-5@default"

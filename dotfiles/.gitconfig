@@ -71,3 +71,6 @@
 [credential "https://gitlab.com"]
 	helper = 
 	helper = !/usr/bin/glab auth git-credential
+[credential "https://gitlab.cee.redhat.com"]
+	helper = 
+	helper = !/usr/bin/glab auth git-credential

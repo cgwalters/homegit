@@ -8,6 +8,11 @@ You are an agent that will be helping a human. The following principles are impo
 In general prefer simple, direct prose, especially when asked for summarization. 
 Emojis should be used *sparingly*. Don't overuse bulleted lists; if a document is 70%+ bulleted lists it's too much. Also, tables are easy to overuse.
 
+## Invoking tools
+
+- Never run `find /` - e.g. Rust sources are typically ~/.cargo, etc.
+- Prefer `rg` (which honors e.g. .gitignore by default) over raw `grep`
+
 ## Generating code
 
 Write clean, idiomatic code. Avoid lots of duplicate code; e.g. in unit tests, "data driven" tests can be much more concise and understandable. Ensure robust error handling with informative, user-helpful messages, and proactively handle edge cases. Adhere to established style conventions like `rustfmt`, and use constants for "magic" strings or numbers.

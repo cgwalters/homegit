@@ -26,6 +26,14 @@
         // Pro is a planning model — cap at 500k
         "gemini-3.1-pro-preview": { "limit": { "context": 500000, "output": 65536 } }
       }
+    },
+    "openai": {
+      "models": {
+        // Sol is the GPT-5.6 frontier tier — cap at 200k, used for architect-sol
+        "gpt-5.6-sol": { "limit": { "context": 200000, "output": 128000 } },
+        // Luna is the GPT-5.6 cost-sensitive/nano tier — cheap/fast execution model
+        "gpt-5.6-luna": { "limit": { "context": 200000, "output": 65536 } }
+      }
     }
   },
   "agent": {
@@ -68,6 +76,11 @@
       "mode": "subagent",
       "model": "google-vertex/gemini-3.6-flash"
     },
+    "general-luna": {
+      "description": "General-purpose subagent (OpenAI GPT-5.6 Luna); cheap/fast, can pair with @general-c/@general-g for review/consensus.",
+      "mode": "subagent",
+      "model": "openai/gpt-5.6-luna"
+    },
     "architect-c46": {
       "description": "Architect for hard problems: planning, design, complex debugging, architectural decisions, tricky refactors. Also consider asking @architect-g and aiming for consensus.",
       "mode": "subagent",
@@ -85,6 +98,12 @@
       "mode": "subagent",
       "model": "google-vertex/gemini-3.1-pro-preview",
       "color": "#4285f4"
+    },
+    "architect-sol": {
+      "description": "Architect for hard problems: planning, design, complex debugging, architectural decisions, tricky refactors. Also consider asking @architect-c and @architect-g and aiming for consensus.",
+      "mode": "subagent",
+      "model": "openai/gpt-5.6-sol",
+      "color": "#10a37f"
     }
   }
 }

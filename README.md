@@ -12,3 +12,9 @@ useful.
 ## Agent configuration
 
 This repository also contains [AGENTS.md](AGENTS.md), my default system prompt for agents.
+
+## MacOS
+
+`dotfiles/` targets my Linux machines. MacOS-specific overrides live in
+`macos-csb/`; `make install-macos-csb` installs the base dotfiles and
+then layers that overlay on top.

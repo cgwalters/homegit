@@ -1,0 +1,68 @@
+{
+  // Note this is for Opencode 2.x
+  "$schema": "https://opencode.ai/config.json",
+  // Default to a capable open weights model
+  "model": "enmaas/rits/zai-org/glm-5-3",
+  // Sharing isn't implemented in V2 yet; keep it off by default when it lands.
+  "share": "disabled",
+  "agents": {
+    // Consider tweaking each agent's "system" prompt to reduce the default prompt overhead.
+    // For planning, defer to the current latest Sol model from OpenAI;
+    "plan": { "model": "openai/gpt-6.1-sol" },
+    // Sol planning subagent; invoke with @solplan.
+    "solplan": { "model": "openai/gpt-6.1-sol", "mode": "subagent" },
+    // But tag @opusplan if you want Anthropic. claude-opus-5-5 is unusable via
+    // the enmaas proxy: OpenCode always sends thinking.adaptive.block_binding
+    // for claude >= 5.1 and the proxy's API schema rejects that field.
+    "opusplan": { "model": "anthropic/claude-opus-5", "mode": "subagent" },
+    // Fast OpenAI subagent for general implementation work; invoke with @sol.
+    "sol": {
+      "model": "openai/gpt-6.1-sol",
+      "mode": "subagent",
+    },
+    "luna": {
+      "model": "openai/gpt-6-luna",
+      "mode": "subagent",
+    },
+    // Fast Gemini subagent; invoke with @flash.
+    "flash": {
+      "model": "google/gemini-3.8-flash",
+      "mode": "subagent",
+    },
+    // Others use the default GLM model.
+  },
+  "providers": {
+    "enmaas": {
+      "package": "@opencode/ai/providers/openai-compatible",
+      "settings": { "baseURL": "https://api.enmaas.devshift.net/v1" },
+      "env": ["ENMAAS_KEY"],
+      "models": {
+        "rits/zai-org/glm-5-3": {
+          "limit": { "context": 262144, "output": 65536 }
+        }
+      }
+    },
+    "google": {
+      "package": "@opencode/ai/providers/openai-compatible",
+      "settings": {
+        "baseURL": "https://api.enmaas.devshift.net/v1",
+        "apiKey": "{env:ENMAAS_KEY}"
+      },
+      "env": ["ENMAAS_KEY"]
+    },
+    "anthropic": {
+      "settings": { "baseURL": "https://api.enmaas.devshift.net/v1" },
+      "env": ["ENMAAS_KEY"],
+      "models": {
+        // The proxy only accepts thinking: {type: "adaptive"} for claude.
+        "claude-opus-5": {
+          "settings": { "thinking": { "type": "adaptive" } }
+        }
+      }
+    },
+    "openai": {
+      "settings": { "baseURL": "https://api.enmaas.devshift.net/v1" },
+      "env": ["ENMAAS_KEY"]
+    }
+  }
+}

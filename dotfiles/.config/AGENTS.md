@@ -75,4 +75,4 @@ If any verification step fails:
 
 By default, you MUST NOT add any `Signed-off-by` line on any commits you generate (or edit/rebase). That is for the human user to do manually before pushing. If a commit already has a signoff though, don't remove it.
 
-Generated commits MUST have the `Assisted-by` tag as mentioned above, unless the current project's contributing guidelines prohibit or discourage it.
+Generated commits MUST have the trailer `Assisted-by: https://github.com/cgwalters/homegit#llms` (see the `commit-writing` skill), unless the current project's contributing guidelines prohibit or discourage it, or the human wrote the message themselves.

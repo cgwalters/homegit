@@ -74,3 +74,6 @@
 [credential "https://gitlab.cee.redhat.com"]
 	helper = 
 	helper = !glab auth git-credential
+
+[include]
+	path = ~/.gitconfig.local

@@ -9,6 +9,13 @@ If you like this repository, you might also find my personal
 Ansible https://github.com/cgwalters/ansible-personal repository
 useful.
 
+## LLMs
+
+If you see an `Assisted-by: https://github.com/cgwalters/homegit#llms`
+trailer on a git commit, or a `Generated-by:` header with the same
+link in other text, it's a signal that I guided LLM generation of
+that content.
+
 ## Agent configuration
 
 This repository also contains [AGENTS.md](AGENTS.md), my default system prompt for agents.
